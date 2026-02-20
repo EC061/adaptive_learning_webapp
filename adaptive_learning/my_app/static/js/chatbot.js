@@ -57,7 +57,7 @@ function sendMessage() {
         return;
     }
 
-    fetch('/api/phi3-chat/', {
+    fetch('/api/ai-chat-helper/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -68,13 +68,12 @@ function sendMessage() {
         })
     })
     .then(response => {
-        console.log("HF API status:", response.status);
-        console.log("HF API content:", response.text);
+        console.log("AI API status:", response.status);
         if (response.ok) {
             return response.json();
         } else {
-            console.error("HF API error:", response.statusText);
-            return Promise.reject(new Error("HF API did not return valid JSON."));
+            console.error("AI API error:", response.statusText);
+            return Promise.reject(new Error("AI API did not return valid JSON."));
         }
     })
     .then(data => {

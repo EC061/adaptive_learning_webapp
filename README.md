@@ -10,8 +10,8 @@ This is a Django-based web application. This guide will walk you through setting
 
 ## 📦 Prerequisites
 
-- Python 3.11 or higher
-- pip (Python package installer)
+- Python 3.10 or higher
+- [uv](https://docs.astral.sh/uv/) (Python package and project manager)
 - Git (optional, for cloning)
 - Basic terminal/command-line usage
 
@@ -62,121 +62,42 @@ Or download the ZIP and extract it manually.
 
 ---
 
-### 3️⃣ Create & Activate Virtual Environment
+### 3️⃣ Create Virtual Environment & Install Dependencies
 
-Create a virtual environment:
-
-<details>
-<summary>Windows</summary>
+This project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management. All dependencies are defined in `pyproject.toml`.
 
 ```bash
-python -m venv venv
-.\venv\Scripts\activate
+uv sync
 ```
-</details>
 
-<details>
-<summary>macOS/Linux</summary>
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-</details>
+> This creates a `.venv/` virtual environment and installs all dependencies automatically.
 
 ---
 
-### 4️⃣ Install Dependencies
-
-Install all required Python packages:
-
-<details>
-<summary>Windows</summary>
-
-```bash
-pip install Django numpy pandas torch
-pip install -r requirements.txt
-```
-</details>
-
-<details>
-<summary>macOS/Linux</summary>
-
-```bash
-pip3 install Django numpy pandas torch
-pip3 install -r requirements.txt
-```
-</details>
-
-> If you don't have a `requirements.txt` yet, you can create one:
-
-```bash
-pip freeze > requirements.txt
-```
-
----
-
-### 5️⃣ Apply Migrations
+### 4️⃣ Apply Migrations
 
 Run database migrations:
 
-<details>
-<summary>Windows</summary>
-
 ```bash
-python manage.py makemigrations
-python manage.py migrate
+uv run python manage.py makemigrations
+uv run python manage.py migrate
 ```
-</details>
-
-<details>
-<summary>macOS/Linux</summary>
-
-```bash
-python3 manage.py makemigrations
-python3 manage.py migrate
-```
-</details>
 
 ---
 
-### 6️⃣ Create a Superuser (Admin Access)
-
-<details>
-<summary>Windows</summary>
+### 5️⃣ Create a Superuser (Admin Access)
 
 ```bash
-python manage.py createsuperuser
+uv run python manage.py createsuperuser
 ```
-</details>
-
-<details>
-<summary>macOS/Linux</summary>
-
-```bash
-python3 manage.py createsuperuser
-```
-</details>
 
 ---
 
-### 7️⃣ Run the Server
-
-<details>
-<summary>Windows</summary>
+### 6️⃣ Run the Development Server
 
 ```bash
-python manage.py runserver
+uv run python manage.py runserver
 ```
-</details>
-
-<details>
-<summary>macOS/Linux</summary>
-
-```bash
-python3 manage.py runserver
-```
-</details>
 
 Now open your browser and go to:
 
@@ -185,50 +106,39 @@ Now open your browser and go to:
 
 ---
 
-## 📂 Project Structure (Sample)
+### 7️⃣ Run the Production Server
+
+Collect static files and start Gunicorn:
+
+```bash
+uv run python manage.py collectstatic --noinput
+uv run gunicorn adaptive_learning.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --preload
+```
+
+> `--timeout 120` allows time for model loading at startup. `--preload` loads the app once before forking workers.
+
+---
+
+## 📂 Project Structure
 
 ```
-your-repo-name/
+adaptive_learning_webapp/
 ├── manage.py
-├── requirements.txt
+├── pyproject.toml
+├── uv.lock
 ├── README.md
+├── .env
 ├── db.sqlite3
-├── your_project/
+├── adaptive_learning/
 │   ├── settings.py
-│   └── ...
-├── your_app/
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+├── my_app/
 │   ├── views.py
 │   ├── models.py
 │   └── ...
 ```
-
----
-
-## 📄 Sample `requirements.txt`
-
-```txt
-Django>=3.2
-numpy
-pandas
-```
-
-Generate it any time:
-
-<details>
-<summary>Windows</summary>
-
-```bash
-pip freeze > requirements.txt
-```
-</details>
-
-<details>
-<summary>macOS/Linux</summary>
-
-```bash
-pip3 freeze > requirements.txt
-```
-</details>
 
 ---
 

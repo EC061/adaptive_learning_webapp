@@ -1,13 +1,13 @@
 import os
 import django
 import sys
+from my_app.models import VideoModule, Topic, Subtopic
+from django.db import transaction
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adaptive_learning.settings")
 django.setup()
 
-from my_app.models import VideoModule, Topic, Subtopic
-from django.db import transaction
 
 # Delete existing VideoModules (leave Topics and Subtopics intact)
 VideoModule.objects.all().delete()
@@ -22,7 +22,7 @@ videos_data = [
         "level": "Beginner",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Nature of temperature",
-        "misconceptions": "15"
+        "misconceptions": "15",
     },
     {
         "title": "Water and oil",
@@ -31,7 +31,7 @@ videos_data = [
         "level": "Beginner",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Nature of temperature",
-        "misconceptions": "18"
+        "misconceptions": "18",
     },
     {
         "title": "Temperature",
@@ -40,7 +40,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Heat transfer and temperature change",
-        "misconceptions": "4"
+        "misconceptions": "4",
     },
     {
         "title": "Cold and hot water to environment temperature",
@@ -49,7 +49,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Heat transfer and temperature change",
-        "misconceptions": "13"
+        "misconceptions": "13",
     },
     {
         "title": "Diffusion",
@@ -58,7 +58,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Heat transfer and temperature change",
-        "misconceptions": "3"
+        "misconceptions": "3",
     },
     {
         "title": "Ice",
@@ -67,7 +67,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Heat transfer and material",
-        "misconceptions": "7"
+        "misconceptions": "7",
     },
     {
         "title": "Melted ice",
@@ -76,7 +76,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Fusion/melting point and freezing point",
-        "misconceptions": "9,12,20,21"
+        "misconceptions": "9,12,20,21",
     },
     {
         "title": "Metal in cold and hot water",
@@ -85,7 +85,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Fusion/melting point and freezing point",
-        "misconceptions": "12,13,17,18"
+        "misconceptions": "12,13,17,18",
     },
     {
         "title": "Boiled Water",
@@ -94,7 +94,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Boiling point, Liquifaction, Vaporation",
-        "misconceptions": "5,9,19,22"
+        "misconceptions": "5,9,19,22",
     },
     {
         "title": "Cold and hot water",
@@ -103,7 +103,7 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Boiling point, Liquifaction, Vaporation",
-        "misconceptions": "8"
+        "misconceptions": "8",
     },
     {
         "title": "Vaportation",
@@ -112,15 +112,17 @@ videos_data = [
         "level": "Intermediate",
         "topic_name": "Thermodynamics",
         "subtopic_name": "Boiling point, Liquifaction, Vaporation",
-        "misconceptions": "23"
-    }
+        "misconceptions": "23",
+    },
 ]
 
 # Insert new data into the models
 with transaction.atomic():
     for video in videos_data:
         topic_obj, created = Topic.objects.get_or_create(topic_name=video["topic_name"])
-        subtopic_obj, created = Subtopic.objects.get_or_create(subtopic_name=video["subtopic_name"], topic=topic_obj)
+        subtopic_obj, created = Subtopic.objects.get_or_create(
+            subtopic_name=video["subtopic_name"], topic=topic_obj
+        )
         video_module = VideoModule.objects.create(
             title=video["title"],
             url=video["url"],
@@ -128,6 +130,6 @@ with transaction.atomic():
             topic=topic_obj,
             subtopic=subtopic_obj,
             level=video["level"],
-            misconceptions=video.get("misconceptions", "")
+            misconceptions=video.get("misconceptions", ""),
         )
         print(f"VideoModule '{video_module.title}' added successfully!")

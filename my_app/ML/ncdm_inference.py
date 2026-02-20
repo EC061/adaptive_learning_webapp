@@ -1,17 +1,15 @@
 import torch
-import logging
 from .ncdm_model import Net
 import os
 from django.conf import settings
 
 question_id_to_index = {f"Q{i + 1}": i for i in range(26)}
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, 'my_app', 'ML', 'ncdm_model.pth')
+MODEL_PATH = os.path.join(settings.BASE_DIR, "my_app", "ML", "ncdm_model.pth")
 KNOWLEDGE_N = 23  # or dynamically load as needed
 EXER_N = 26
 STUDENT_N = 619
 DEVICE = "cpu"
-
 
 
 def load_model(model_path, KNOWLEDGE_N, EXER_N, STUDENT_N, device="cpu"):
@@ -20,13 +18,15 @@ def load_model(model_path, KNOWLEDGE_N, EXER_N, STUDENT_N, device="cpu"):
     model.eval()
     return model
 
+
 # Load the model once
 MODEL = load_model(MODEL_PATH, KNOWLEDGE_N, EXER_N, STUDENT_N, DEVICE)
+
 
 def predict(model, user_id, question_id, knowledge_embedding, device="cpu"):
     print(f"predict function called for user: {user_id}, question: {question_id}")
     # Get the integer index from question ID (e.g., "Q14" -> 13)
-    if isinstance(question_id, str) and question_id.startswith('Q'):
+    if isinstance(question_id, str) and question_id.startswith("Q"):
         item_id = question_id_to_index.get(question_id)
     else:
         item_id = int(question_id) - 1  # Convert to 0-based index

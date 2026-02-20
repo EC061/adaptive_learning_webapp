@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env from the same directory as settings.py (project root)
-load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
+# Load .env from the project root (where manage.py lives)
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -31,8 +31,12 @@ SECRET_KEY = "django-insecure-)-6-6n_o8jj4@@29g4mtxaeyp#w2-7uf1-5^^kg^v#g*zemhwz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ["adaptive-learning-webapp.onrender.com"]
-ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    "adaptive-learning-webapp.onrender.com",
+    "*.ai4talent.org",
+    "*",
+]
+# ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,6 +72,7 @@ ROOT_URLCONF = "adaptive_learning.urls"
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "my_app", "static")]
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
 
 TEMPLATES = [
     {
@@ -90,6 +96,18 @@ WSGI_APPLICATION = "adaptive_learning.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'adaptive_learning_db',      # your database name
+#         'USER': 'adaptive_user',             # your username
+#         'PASSWORD': 'admin',         # your password
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 # --- Database configuration ---
 # Uses DATABASE_URL if available; otherwise falls back to local SQLite.
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -103,15 +121,23 @@ else:
         }
     }
 
-# --- Development/SQLite configuration (commented out) ---
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
+#    'default': {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#        'NAME': BASE_DIR / 'db.sqlite3',
+#        'OPTIONS': {
+#            'timeout': 20
+#        }
+#
+#    }
 # }
 
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get('DATABASE_URL')
+#     )
+# }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -137,8 +163,7 @@ else:
 
 LANGUAGE_CODE = "en-us"
 
-# TIME_ZONE = 'UTC'
-TIME_ZONE = "America/New_York"  # Eastern Time
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -148,11 +173,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+STATIC_URL = "static/"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+LOGIN_REDIRECT_URL = "/home/"
+
 CSRF_TRUSTED_ORIGINS = [
-    "https://adaptive-learning-webapp.onrender.com",
+    "https://*.ai4talent.org",
 ]

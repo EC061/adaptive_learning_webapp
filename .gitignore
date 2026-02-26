@@ -1,46 +1,46 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
 
-# Virtual environments
-.venv/
-.venv1/
-venv/
-env/
+# Next.js
+/.next/
+/out/
 
-# Environment variables
-.env
+# Production
+/build
 
-# Django
-*.log
-db.sqlite3-journal
-staticfiles/
-media/
-gunicorn.ctl
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
+# Misc
 .DS_Store
-Thumbs.db
+*.pem
 
-# Secrets
-secrets.txt
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Learning Videos (large files)
-/Learning Videos/
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# BFG Repo Cleaner (tool jar, not needed in repo)
-bfg-1.15.0.jar
+# Vercel
+.vercel
 
-# Distribution / packaging
-*.egg-info/
-dist/
-build/
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# Python legacy (keep .venv ignored)
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3

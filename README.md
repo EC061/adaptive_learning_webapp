@@ -1,195 +1,80 @@
-Google Docs - https://docs.google.com/document/d/1jny8N5S4Npfvz9mCveuMjOehm7nQWT9tmpNaGn95n7Y/edit?tab=t.0
+# Adaptive Learning Platform
 
----------------------------------------------------------------------------------------------------------------------------------------------------------------
+A Next.js 14 adaptive learning platform for science education with teacher dashboards, class management, and module-based quizzes.
 
-# 🎬 Django Web Application
+## Tech Stack
 
-This is a Django-based web application. This guide will walk you through setting it up from scratch, including Python installation, environment setup, and running the server.
+- **Next.js 14** (App Router) + TypeScript
+- **Prisma ORM** — SQLite (dev) / PostgreSQL (prod)
+- **NextAuth.js v5** — credentials-based login (email or username)
+- **Tailwind CSS** + shadcn/ui components
+- **PM2** for production process management
 
----
-
-## 📦 Prerequisites
-
-- Python 3.10 or higher
-- [uv](https://docs.astral.sh/uv/) (Python package and project manager)
-- Git (optional, for cloning)
-- Basic terminal/command-line usage
-
----
-
-## 🧰 Step-by-Step Setup
-
-### 1️⃣ Install Python & pip
-
-Download and install Python from the official website:
-
-🔗 https://www.python.org/downloads/
-
-> ✅ During installation, ensure you check **"Add Python to PATH"**.
-
-To verify installation:
-
-<details>
-<summary>Windows</summary>
+## Development
 
 ```bash
-python --version
-pip --version
+npm install
+cp .env.example .env
+npm run setup            # creates DB, seeds questions + demo teacher
+npm run dev              # starts dev server
 ```
-</details>
 
-<details>
-<summary>macOS/Linux</summary>
+Open [http://localhost:3000](http://localhost:3000).
+
+Demo teacher account: `teacher@demo.com` / `password123`
+
+Run `npm run setup` again at any time to wipe and re-seed a clean database.
+
+## Production
+
+Prerequisites: PostgreSQL instance, Node.js, PM2.
 
 ```bash
-python3 --version
-pip3 --version
-```
-</details>
-
----
-
-### 2️⃣ Clone the Project Repository
-
-Clone this repository or download the ZIP.
-
-```bash
-git clone https://github.com/ypjoshi18/adaptive_learning_webapp.git
-cd your-repo-name
+npm install
+cp .env.example .env     # then edit .env:
+                         #   DB_PROVIDER="postgresql"
+                         #   DATABASE_URL="postgresql://user:pass@host:5432/adaptive_learning"
+                         #   NEXTAUTH_SECRET="long-random-secret"
+                         #   NEXTAUTH_URL="https://your-domain.com"
+                         #   NEXT_PUBLIC_APP_URL="https://your-domain.com"
+npm run deploy           # applies schema, seeds questions, builds, starts PM2
 ```
 
-Or download the ZIP and extract it manually.
+## Environment Variables
 
----
+| Variable | Description |
+|---|---|
+| `DB_PROVIDER` | `sqlite` (dev) or `postgresql` (prod) |
+| `DATABASE_URL` | `file:./dev.db` (dev) or PostgreSQL connection string (prod) |
+| `NEXTAUTH_SECRET` | Random string for signing auth tokens |
+| `NEXTAUTH_URL` | `http://localhost:3000` (dev) or your production URL |
+| `NEXT_PUBLIC_APP_URL` | Same as NEXTAUTH_URL — used for invite link generation |
+| `TEACHER_SIGNUP_TOKEN` | Secret token teachers must enter when registering |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_MODEL` | OpenAI model name |
 
-### 3️⃣ Create Virtual Environment & Install Dependencies
-
-This project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management. All dependencies are defined in `pyproject.toml`.
-
-```bash
-uv sync
-```
-
-> This creates a `.venv/` virtual environment and installs all dependencies automatically.
-
----
-
-### 4️⃣ Apply Migrations
-
-Run database migrations:
-
-```bash
-uv run python manage.py makemigrations
-uv run python manage.py migrate
-```
-
----
-
-### 5️⃣ Create a Superuser (Admin Access)
-
-```bash
-uv run python manage.py createsuperuser
-```
-
----
-
-### 6️⃣ Run the Development Server
-
-```bash
-uv run python manage.py runserver
-```
-
-Now open your browser and go to:
-
-- App: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- Admin Panel: [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
-
----
-
-### 7️⃣ Run the Production Server
-
-Collect static files and start Gunicorn:
-
-```bash
-uv run python manage.py collectstatic --noinput
-uv run gunicorn adaptive_learning.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --preload
-```
-
-> `--timeout 120` allows time for model loading at startup. `--preload` loads the app once before forking workers.
-
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```
-adaptive_learning_webapp/
-├── manage.py
-├── pyproject.toml
-├── uv.lock
-├── README.md
-├── .env
-├── db.sqlite3
-├── adaptive_learning/
-│   ├── settings.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-├── my_app/
-│   ├── views.py
-│   ├── models.py
-│   └── ...
+src/
+├── app/
+│   ├── (auth)/           # Login, Register, Invite pages
+│   ├── (dashboard)/
+│   │   ├── teacher/      # Teacher dashboard, classes, topics, questions
+│   │   └── student/      # Student dashboard, class view, module quiz
+│   └── api/              # API routes
+├── components/
+│   ├── ui/               # shadcn/ui components
+│   └── dashboard/        # Sidebar, shared dashboard components
+├── lib/
+│   ├── auth.ts           # NextAuth config
+│   ├── prisma.ts         # Prisma client singleton
+│   └── utils.ts          # Helpers
+├── types/                # TypeScript types and enums
+└── middleware.ts          # Route protection
+prisma/
+├── schema.prisma         # Database schema
+├── set-provider.ts       # Sets DB provider from .env before Prisma commands
+├── seed.ts               # Seeds topics + 26 thermodynamics questions
+└── seed-demo.ts          # Creates demo teacher account (dev only)
 ```
-
----
-
-## 🔐 How to Create a Hugging Face API Key for Phi-3 Access
-
-To use the **Phi-3** model or any other hosted model on Hugging Face via API, you need to generate an API key. Follow these steps:
-
-### 📌 Step-by-Step Instructions
-
-#### 1. Sign in or Sign up
-- Visit [https://huggingface.co](https://huggingface.co)
-- Log in to your account, or create one if you don’t already have it.
-
-#### 2. Navigate to Access Tokens
-- Click on your profile picture in the top-right corner.
-- Select **"Settings"** from the dropdown menu.
-- From the left sidebar, click on **"Access Tokens**" or go directly to:  
-  [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-
-#### 3. Generate a New Token
-- Click **"New token"**
-- Enter a name (e.g., `phi3-token`)
-- Choose a role:
-  - Select **"Read"** if you only need to access and use models.
-  - For most use cases, **"Read" is sufficient**.
-- Click **"Generate"**
-
-#### 4. Copy and Save the Token
-- Copy the token shown — **you won’t be able to see it again**.
-- Store it securely (e.g., in an environment variable or a secret manager).
-- ⚠️ **Do NOT commit this token to version control (e.g., GitHub).**
-
----
-
-
-## ❓ Troubleshooting
-
-- If `python` or `pip` does not work on macOS/Linux, try `python3` and `pip3`.
-- Always activate the virtual environment before running commands.
-- Use `deactivate` to exit the virtual environment.
-
----
-
-## 👨‍💻 Author
-
-**Abhishek Patwardhan**  
-GitHub: [https://github.com/AbhiMP2804](https://github.com/AbhiMP2804)
-
-**Yash Joshi**  
-GitHub: [GitHub](https://github.com/ypjoshi18)
-
----
-
-

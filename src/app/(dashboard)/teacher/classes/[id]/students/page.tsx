@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
-export default async function StudentsPage({ params }: { params: { id: string } }) {
+export default async function StudentsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") redirect("/login");
+  const { id } = await params;
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   const cls = await prisma.class.findFirst({
-    where: { id: params.id, teacherId: teacher?.id ?? "" },
+    where: { id, teacherId: teacher?.id ?? "" },
     include: {
       enrollments: {
         include: { student: { include: { user: true } } },

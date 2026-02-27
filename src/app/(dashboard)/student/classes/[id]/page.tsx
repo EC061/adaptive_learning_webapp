@@ -7,21 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CheckCircle, Circle, PlayCircle, BookOpen } from "lucide-react";
 
-export default async function StudentClassPage({ params }: { params: { id: string } }) {
+export default async function StudentClassPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "STUDENT") redirect("/login");
+  const { id } = await params;
 
   const student = await prisma.student.findUnique({ where: { userId: session.user.id } });
   if (!student) redirect("/login");
 
   // Verify enrollment
   const enrollment = await prisma.classEnrollment.findUnique({
-    where: { classId_studentId: { classId: params.id, studentId: student.id } },
+    where: { classId_studentId: { classId: id, studentId: student.id } },
   });
   if (!enrollment) notFound();
 
   const cls = await prisma.class.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       teacher: { include: { user: true } },
       classTopics: {
@@ -43,7 +44,7 @@ export default async function StudentClassPage({ params }: { params: { id: strin
   // Get progress for all subtopics in this class
   const allSubtopicIds = cls.classTopics.flatMap((ct) => ct.topic.subtopics.map((s) => s.id));
   const progressRecords = await prisma.moduleProgress.findMany({
-    where: { studentId: student.id, classId: params.id, subtopicId: { in: allSubtopicIds } },
+    where: { studentId: student.id, classId: id, subtopicId: { in: allSubtopicIds } },
   });
   const progressMap = new Map(progressRecords.map((p) => [p.subtopicId, p]));
 
@@ -108,7 +109,7 @@ export default async function StudentClassPage({ params }: { params: { id: strin
                             </div>
                           </div>
                           <Button size="sm" variant={status === "COMPLETED" ? "secondary" : "default"} asChild>
-                            <Link href={`/student/classes/${params.id}/module/${subtopic.id}`}>
+                            <Link href={`/student/classes/${id}/module/${subtopic.id}`}>
                               {status === "COMPLETED" ? "Retry" : status === "IN_PROGRESS" ? "Continue" : "Start"}
                             </Link>
                           </Button>

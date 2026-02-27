@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, BookOpen, Link2, ArrowLeft, UserCheck } from "lucide-react";
 
-export default async function ClassDetailPage({ params }: { params: { id: string } }) {
+export default async function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") redirect("/login");
+  const { id } = await params;
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   const cls = await prisma.class.findFirst({
-    where: { id: params.id, teacherId: teacher?.id ?? "" },
+    where: { id, teacherId: teacher?.id ?? "" },
     include: {
       enrollments: { include: { student: { include: { user: true } } }, orderBy: { joinedAt: "desc" } },
       classTopics: { include: { topic: { include: { subtopics: true } } }, orderBy: { topic: { order: "asc" } } },

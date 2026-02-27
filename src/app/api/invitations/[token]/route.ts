@@ -3,9 +3,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET: validate token and return class info
-export async function GET(_req: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
   const invitation = await prisma.invitation.findUnique({
-    where: { token: params.token },
+    where: { token },
     include: { class: { include: { teacher: { include: { user: true } } } } },
   });
 
@@ -27,9 +28,10 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
 }
 
 // POST: use invitation (enroll current user, or create account + enroll)
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
   const invitation = await prisma.invitation.findUnique({
-    where: { token: params.token },
+    where: { token },
     include: { class: true },
   });
 

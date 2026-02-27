@@ -3,12 +3,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET: list topics assigned to this class (with published status)
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
 
   const classTopics = await prisma.classTopic.findMany({
-    where: { classId: params.id },
+    where: { classId: id },
     include: {
       topic: {
         include: {
@@ -24,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 // POST: assign a topic to a class
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,10 +33,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { topicId } = await req.json();
   if (!topicId) return NextResponse.json({ error: "topicId required" }, { status: 400 });
+  const { id } = await params;
 
   try {
     const ct = await prisma.classTopic.create({
-      data: { classId: params.id, topicId, published: false },
+      data: { classId: id, topicId, published: false },
       include: { topic: true },
     });
     return NextResponse.json(ct, { status: 201 });
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // PATCH: toggle published or remove a topic from a class
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -53,9 +55,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { topicId, published } = await req.json();
   if (!topicId) return NextResponse.json({ error: "topicId required" }, { status: 400 });
+  const { id } = await params;
 
   const ct = await prisma.classTopic.updateMany({
-    where: { classId: params.id, topicId },
+    where: { classId: id, topicId },
     data: { published: Boolean(published) },
   });
 
@@ -63,13 +66,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE: remove topic from class
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { topicId } = await req.json();
-  await prisma.classTopic.deleteMany({ where: { classId: params.id, topicId } });
+  const { id } = await params;
+  await prisma.classTopic.deleteMany({ where: { classId: id, topicId } });
   return NextResponse.json({ success: true });
 }

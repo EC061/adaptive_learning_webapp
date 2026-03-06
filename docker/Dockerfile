@@ -55,13 +55,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Copy runtime deps needed for seeding (tsx, bcryptjs, uuid, etc.)
-COPY --from=builder /app/node_modules/tsx ./node_modules/tsx
-COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
-COPY --from=builder /app/node_modules/uuid ./node_modules/uuid
-COPY --from=builder /app/node_modules/esbuild ./node_modules/esbuild
-COPY --from=builder /app/node_modules/@esbuild ./node_modules/@esbuild
-COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
+# Install runtime deps needed for the entrypoint seeding scripts directly
+RUN npm install tsx esbuild bcryptjs uuid
 
 # Copy the entrypoint script (path relative to build context = repo root)
 COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh

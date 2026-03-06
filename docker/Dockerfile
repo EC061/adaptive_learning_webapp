@@ -61,6 +61,7 @@ COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 COPY --from=builder /app/node_modules/uuid ./node_modules/uuid
 COPY --from=builder /app/node_modules/esbuild ./node_modules/esbuild
 COPY --from=builder /app/node_modules/@esbuild ./node_modules/@esbuild
+COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 
 # Copy the entrypoint script (path relative to build context = repo root)
 COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh

@@ -27,7 +27,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         role={role}
         firstName={session.user.firstName}
         lastName={session.user.lastName}
-        onSignOut={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
+        onSignOut={async () => {
+          await signOut({ redirect: false });
+          window.location.href = `${window.location.origin}/login`;
+        }}
       />
       <main className="flex-1 overflow-auto">
         {children}

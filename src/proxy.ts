@@ -1,7 +1,25 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+const ALLOWED_HOSTS = [
+  "dev.ai4talent.org",
+  "temp.ai4talent.org",
+  "localhost",
+  "localhost:3000",
+];
+
 export default auth((req) => {
+  // --- Host validation: reject requests from unknown domains ---
+  const host = (
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    ""
+  ).toLowerCase();
+
+  if (!ALLOWED_HOSTS.some((allowed) => host === allowed)) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
   const { pathname } = req.nextUrl;
   const session = req.auth;
 

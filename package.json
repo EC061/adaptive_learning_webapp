@@ -3,9 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "setup": "tsx prisma/set-provider.ts && prisma db push && tsx prisma/seed.ts && tsx prisma/seed-demo.ts",
+    "_set-provider": "tsx prisma/set-provider.ts",
+    "_db:push": "prisma db push",
+    "_seed": "tsx prisma/seed.ts",
+    "_seed:demo": "tsx prisma/seed-demo.ts",
+    "setup": "npm run _set-provider && npm run _db:push && npm run _seed && npm run _seed:demo",
     "dev": "next dev",
-    "deploy": "tsx prisma/set-provider.ts && prisma db push && tsx prisma/seed.ts && next build && pm2 start ecosystem.config.js"
+    "deploy": "npm run _set-provider && npm run _db:push && next build && next start",
+    "deploy:full": "npm run _set-provider && npm run _db:push && npm run _seed && npm run _seed:demo && next build && next start"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

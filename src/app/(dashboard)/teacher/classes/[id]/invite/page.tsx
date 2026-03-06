@@ -27,7 +27,7 @@ export default function InvitePage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   useEffect(() => {
     fetch(`/api/classes/${classId}`)

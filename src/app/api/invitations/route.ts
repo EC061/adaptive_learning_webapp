@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
+  const proto = req.headers.get("x-forwarded-proto") || "http";
+  const appUrl = `${proto}://${host}`;
   return NextResponse.json({
     ...invitation,
     url: `${appUrl}/invite/${invitation.token}`,

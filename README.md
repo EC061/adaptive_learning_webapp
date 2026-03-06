@@ -34,9 +34,6 @@ npm install
 cp .env.example .env     # then edit .env:
                          #   DB_PROVIDER="postgresql"
                          #   DATABASE_URL="postgresql://user:pass@host:5432/adaptive_learning"
-                         #   NEXTAUTH_SECRET="long-random-secret"
-                         #   NEXTAUTH_URL="https://your-domain.com"
-                         #   NEXT_PUBLIC_APP_URL="https://your-domain.com"
 npm run deploy           # applies schema, seeds questions, builds, starts PM2
 ```
 
@@ -46,9 +43,6 @@ npm run deploy           # applies schema, seeds questions, builds, starts PM2
 |---|---|
 | `DB_PROVIDER` | `sqlite` (dev) or `postgresql` (prod) |
 | `DATABASE_URL` | `file:./dev.db` (dev) or PostgreSQL connection string (prod) |
-| `NEXTAUTH_SECRET` | Random string for signing auth tokens |
-| `NEXTAUTH_URL` | `http://localhost:3000` (dev) or your production URL |
-| `NEXT_PUBLIC_APP_URL` | Same as NEXTAUTH_URL — used for invite link generation |
 | `TEACHER_SIGNUP_TOKEN` | Secret token teachers must enter when registering |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `OPENAI_MODEL` | OpenAI model name |

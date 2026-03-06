@@ -44,3 +44,8 @@ __pycache__/
 *.pyc
 *.pyo
 db.sqlite3
+
+# Docker
+data/
+docker-compose.override.yml
+ec2-setup.sh

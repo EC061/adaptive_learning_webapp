@@ -1,0 +1,18 @@
+services:
+  web:
+    image: ghcr.io/ec061/adaptive_learning_webapp:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist SQLite database across container restarts
+      - ./data/db:/app/prisma/data
+      # Mount .env at runtime (secrets never baked into image)
+      - ./.env:/app/.env:ro
+    environment:
+      - NODE_ENV=production
+      # Override DATABASE_URL to point to the persistent volume
+      - DATABASE_URL=file:./data/dev.db
+    restart: unless-stopped

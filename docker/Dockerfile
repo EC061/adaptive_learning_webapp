@@ -1,5 +1,6 @@
 # ── Stage 1: Install dependencies ──────────────────────────────────────────────
 FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -7,15 +8,20 @@ RUN npm ci
 
 # ── Stage 2: Build the application ────────────────────────────────────────────
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p /app/public
+
+ARG DB_PROVIDER
+ARG DATABASE_URL
 
 # Create a build-time .env (actual secrets are mounted at runtime, not baked in)
 # set-provider.ts reads DB_PROVIDER from .env to configure prisma/schema.prisma
-RUN echo 'DB_PROVIDER="sqlite"' > .env && \
-    echo 'DATABASE_URL="file:./dev.db"' >> .env
+RUN echo "DB_PROVIDER=\"${DB_PROVIDER:-sqlite}\"" > .env && \
+    echo "DATABASE_URL=\"${DATABASE_URL:-file:./dev.db}\"" >> .env
 
 # Generate Prisma client (uses sqlite provider from schema.prisma)
 RUN npx prisma generate
@@ -25,6 +31,7 @@ RUN npm run _set-provider && npx next build
 
 # ── Stage 3: Production runner ─────────────────────────────────────────────────
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production

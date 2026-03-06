@@ -20,7 +20,7 @@ export default async function HomePage() {
             </svg>
           </div>
           <h1 className="text-5xl font-bold text-white">
-            Adaptive Learning
+            Adaptive Learning temp temp
           </h1>
           <p className="text-xl text-slate-300">
             Guided science education for every student

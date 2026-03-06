@@ -27,7 +27,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         role={role}
         firstName={session.user.firstName}
         lastName={session.user.lastName}
-        onSignOut={() => signOut({ callbackUrl: "/login" })}
+        onSignOut={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
       />
       <main className="flex-1 overflow-auto">
         {children}

@@ -11,14 +11,9 @@ out
 .git
 .gitignore
 
-# Environment (mounted at runtime, never baked in)
+# Environment
 .env
 .env.*
-
-# SQLite databases
-prisma/dev.db
-prisma/dev.db-journal
-db.sqlite3
 
 # IDE / OS
 .vscode

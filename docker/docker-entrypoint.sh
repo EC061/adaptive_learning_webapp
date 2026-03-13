@@ -1,22 +1,13 @@
 #!/bin/sh
 set -e
 
-echo "==> Running deploy:full steps..."
+if [ -z "${DATABASE_URL:-}" ] && [ -n "${PROD_DATABASE_URL:-}" ]; then
+  export DATABASE_URL="${PROD_DATABASE_URL}"
+fi
 
-# Ensure the SQLite data directory exists (volume mount target)
-mkdir -p /app/prisma/data
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "DATABASE_URL or PROD_DATABASE_URL must be set" >&2
+  exit 1
+fi
 
-echo "  → Setting Prisma provider..."
-npx tsx prisma/set-provider.ts
-
-echo "  → Pushing database schema..."
-npx prisma db push --skip-generate
-
-echo "  → Seeding database..."
-npx tsx prisma/seed.ts
-
-echo "  → Seeding demo data..."
-npx tsx prisma/seed-demo.ts
-
-echo "==> Starting Next.js server..."
 exec node server.js

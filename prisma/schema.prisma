@@ -1,12 +1,9 @@
-// DB provider is set automatically from DB_PROVIDER in .env
-// via prisma/set-provider.ts (runs before all prisma commands)
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

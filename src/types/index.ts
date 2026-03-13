@@ -1,4 +1,4 @@
-// Application-level type constants (string enums for SQLite compatibility)
+// Application-level type constants
 
 export const Role = {
   TEACHER: "TEACHER",

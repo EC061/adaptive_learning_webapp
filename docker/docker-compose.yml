@@ -4,15 +4,12 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    pull_policy: always
     ports:
       - "3000:3000"
-    volumes:
-      # Persist SQLite database across container restarts
-      - ./data/db:/app/prisma/data
-      # Mount .env at runtime (secrets never baked into image)
-      - ./.env:/app/.env:ro
+    env_file:
+      - ./.env
     environment:
-      - NODE_ENV=production
-      # Override DATABASE_URL to point to the persistent volume
-      - DATABASE_URL=file:./data/dev.db
+      NODE_ENV: production
+      DATABASE_URL: ${PROD_DATABASE_URL}
     restart: unless-stopped

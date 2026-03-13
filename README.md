@@ -5,7 +5,7 @@ A Next.js 14 adaptive learning platform for science education with teacher dashb
 ## Tech Stack
 
 - **Next.js 14** (App Router) + TypeScript
-- **Prisma ORM** — SQLite (dev) / PostgreSQL (prod)
+- **Prisma ORM** — PostgreSQL
 - **NextAuth.js v5** — credentials-based login (email or username)
 - **Tailwind CSS** + shadcn/ui components
 - **PM2** for production process management
@@ -21,7 +21,7 @@ npm run dev              # starts dev server
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Demo teacher account: `teacher@demo.com` / `password123`
+Demo teacher account: `edwardcheng@uga.edu` / `nY*H1#6i#t8kqeP`
 
 Run `npm run setup` again at any time to wipe and re-seed a clean database.
 
@@ -32,19 +32,46 @@ Prerequisites: PostgreSQL instance, Node.js, PM2.
 ```bash
 npm install
 cp .env.example .env     # then edit .env:
-                         #   DB_PROVIDER="postgresql"
                          #   DATABASE_URL="postgresql://user:pass@host:5432/adaptive_learning"
-npm run deploy           # applies schema, seeds questions, builds, starts PM2
+npm run deploy           # applies schema, builds, starts PM2
+```
+
+## GitHub Deployment Secrets
+
+The GitHub Actions workflow currently needs these repository secrets:
+
+| Secret | Description |
+|---|---|
+| `EC2_HOST` | Public host/IP of the deployment server |
+| `EC2_USER` | SSH username used for deploys |
+| `EC2_SSH_KEY` | Private SSH key for that server |
+
+`GITHUB_TOKEN` is used by the workflow too, but GitHub provides that automatically, so you do not need to create it manually.
+
+## Server `.env` For Docker Deploys
+
+The database URL is no longer read from GitHub Actions secrets during the image build.
+Instead, Docker Compose expects it on the EC2 server in `~/app/.env`, next to `~/app/docker-compose.yml`.
+
+Example `~/app/.env`:
+
+```bash
+PROD_DATABASE_URL="postgresql://user:pass@host:5432/adaptive_learning"
+TEACHER_SIGNUP_TOKEN="your-secret-teacher-code"
+OPENAI_API_KEY=""
+OPENAI_SERVICE_TIER="flex"
+OPENAI_MODEL="gpt-5.1"
 ```
 
 ## Environment Variables
 
 | Variable | Description |
 |---|---|
-| `DB_PROVIDER` | `sqlite` (dev) or `postgresql` (prod) |
-| `DATABASE_URL` | `file:./dev.db` (dev) or PostgreSQL connection string (prod) |
+| `DATABASE_URL` | PostgreSQL connection string used by Prisma for local/manual commands |
+| `PROD_DATABASE_URL` | Production PostgreSQL connection string read by Docker Compose |
 | `TEACHER_SIGNUP_TOKEN` | Secret token teachers must enter when registering |
 | `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_SERVICE_TIER` | OpenAI service tier |
 | `OPENAI_MODEL` | OpenAI model name |
 
 ## Project Structure
@@ -68,7 +95,6 @@ src/
 └── middleware.ts          # Route protection
 prisma/
 ├── schema.prisma         # Database schema
-├── set-provider.ts       # Sets DB provider from .env before Prisma commands
 ├── seed.ts               # Seeds topics + 26 thermodynamics questions
 └── seed-demo.ts          # Creates demo teacher account (dev only)
 ```

@@ -15,7 +15,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npx prisma generate && npx next build
+RUN mkdir -p public && npx prisma generate && npx next build
 
 # ── Stage 3: Production runner ────────────────────────────────────────────────
 FROM node:20-alpine AS runner

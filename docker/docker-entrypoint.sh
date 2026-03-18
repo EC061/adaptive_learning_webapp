@@ -10,4 +10,9 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
+echo "Applying database schema..."
+npx prisma db push --skip-generate --accept-data-loss 2>&1 || {
+  echo "WARNING: prisma db push failed — the app will start but may have schema issues" >&2
+}
+
 exec node server.js

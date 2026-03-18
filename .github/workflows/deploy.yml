@@ -39,6 +39,17 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
+      # ── Copy compose file to EC2 ──────────────────────────────────────────
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker/docker-compose.yml"
+          target: "~/app"
+          strip_components: 1
+
       # ── Deploy to EC2 via SSH ─────────────────────────────────────────────
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1

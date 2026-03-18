@@ -13,3 +13,5 @@ services:
       NODE_ENV: production
       DATABASE_URL: ${PROD_DATABASE_URL}
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

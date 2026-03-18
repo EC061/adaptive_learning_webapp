@@ -11,7 +11,7 @@ if [ -z "${DATABASE_URL:-}" ]; then
 fi
 
 echo "Applying database schema..."
-npx prisma db push --skip-generate --accept-data-loss 2>&1 || {
+node ./node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss 2>&1 || {
   echo "WARNING: prisma db push failed — the app will start but may have schema issues" >&2
 }
 

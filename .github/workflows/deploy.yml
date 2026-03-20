@@ -25,8 +25,8 @@ jobs:
       - name: Read release version
         id: version
         run: |
-          echo "version=$(node -p \"require('./version.json').version\")" >> "$GITHUB_OUTPUT"
-          echo "release_date=$(node -p \"require('./version.json').date\")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./version.json').version")" >> "$GITHUB_OUTPUT"
+          echo "release_date=$(node -p "require('./version.json').date")" >> "$GITHUB_OUTPUT"
 
       # ── Login to GitHub Container Registry ────────────────────────────────
       - name: Login to GHCR

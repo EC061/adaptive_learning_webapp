@@ -31,5 +31,8 @@ jobs:
   deploy-dev:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     needs: validate
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/deploy-dev.yml
     secrets: inherit

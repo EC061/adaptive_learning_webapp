@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { VersionModal } from "@/components/version-modal";
 import {
   BookOpen,
   Users,
@@ -95,6 +96,9 @@ export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) 
           <LogOut className="w-4 h-4" />
           Sign out
         </button>
+        <div className="mt-3 px-3">
+          <VersionModal />
+        </div>
       </div>
     </aside>
   );

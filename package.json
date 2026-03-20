@@ -8,6 +8,8 @@
     "seed:demo": "tsx prisma/seed-demo.ts",
     "setup": "npm run db:push && npm run seed && npm run seed:demo",
     "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "deploy": "npm run db:push && next build && next start",
     "deploy:full": "npm run db:push && npm run seed && npm run seed:demo && next build && next start"
   },

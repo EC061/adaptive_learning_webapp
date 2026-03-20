@@ -16,7 +16,12 @@ export default auth((req) => {
     ""
   ).toLowerCase();
 
-  if (!ALLOWED_HOSTS.some((allowed) => host === allowed)) {
+  const isAllowedHost =
+    host === "ai4talent.org" ||
+    host.endsWith(".ai4talent.org") ||
+    ALLOWED_HOSTS.includes(host);
+
+  if (!isAllowedHost) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

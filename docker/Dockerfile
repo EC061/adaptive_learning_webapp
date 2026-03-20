@@ -22,10 +22,18 @@ FROM node:20-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+ARG APP_VERSION=0.0.0
+ARG APP_RELEASE_DATE=1970-01-01
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV APP_VERSION=${APP_VERSION}
+ENV APP_RELEASE_DATE=${APP_RELEASE_DATE}
+
+LABEL org.opencontainers.image.version=${APP_VERSION}
+LABEL org.opencontainers.image.created=${APP_RELEASE_DATE}
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
@@ -37,6 +45,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/version.json ./version.json
+COPY --from=builder /app/CHANGELOG.md ./CHANGELOG.md
 
 COPY docker/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh && \

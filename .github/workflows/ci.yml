@@ -27,3 +27,9 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: validate
+    uses: ./.github/workflows/deploy-dev.yml
+    secrets: inherit

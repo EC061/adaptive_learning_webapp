@@ -2,9 +2,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { MaterialUploadForm } from "./material-upload";
+import { MaterialDeleteButton } from "./material-delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
+import { getMaxUploadBytes } from "@/lib/storage";
 
 function formatSize(n: number) {
   if (n < 1024) return `${n} B`;
@@ -15,6 +17,8 @@ function formatSize(n: number) {
 export default async function TeacherMaterialsPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") redirect("/login");
+
+  const maxUploadBytes = getMaxUploadBytes();
 
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) redirect("/login");
@@ -44,7 +48,7 @@ export default async function TeacherMaterialsPage() {
         </p>
       </div>
 
-      <MaterialUploadForm />
+      <MaterialUploadForm maxUploadBytes={maxUploadBytes} />
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Your uploads</h2>
@@ -74,16 +78,19 @@ export default async function TeacherMaterialsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Badge
-                        variant={m.uploadStatus === "READY" ? "default" : "secondary"}
-                        className="capitalize"
-                      >
-                        {m.uploadStatus.toLowerCase()}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground text-right max-w-[12rem] truncate" title={m.bucket}>
-                        {m.bucket} · {formatSize(m.sizeBytes)}
-                      </span>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge
+                          variant={m.uploadStatus === "READY" ? "default" : "secondary"}
+                          className="capitalize"
+                        >
+                          {m.uploadStatus.toLowerCase()}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground text-right max-w-[12rem] truncate" title={m.bucket}>
+                          {m.bucket} · {formatSize(m.sizeBytes)}
+                        </span>
+                      </div>
+                      <MaterialDeleteButton id={m.id} label={m.title ?? m.originalName} />
                     </div>
                   </div>
                 </CardHeader>

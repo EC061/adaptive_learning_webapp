@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const DEFAULT_MAX_BYTES = 50 * 1024 * 1024;
@@ -37,6 +43,8 @@ export function getS3Client(): S3Client {
     const endpoint = process.env.AWS_S3_ENDPOINT;
     s3Client = new S3Client({
       region: process.env.AWS_REGION,
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       ...(endpoint
         ? {
             endpoint,
@@ -52,14 +60,13 @@ export async function presignPutUpload(
   bucket: string,
   key: string,
   mimeType: string,
-  contentLength: number
+  _contentLength: number
 ): Promise<string> {
   const client = getS3Client();
   const cmd = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
     ContentType: mimeType,
-    ContentLength: contentLength,
   });
   return getSignedUrl(client, cmd, { expiresIn: PRESIGN_EXPIRES_SEC });
 }
@@ -77,4 +84,9 @@ export async function readS3ObjectBytes(bucket: string, key: string): Promise<Bu
   const body = out.Body;
   if (!body) throw new Error("Empty S3 object body");
   return Buffer.from(await body.transformToByteArray());
+}
+
+export async function deleteS3Object(bucket: string, key: string): Promise<void> {
+  const client = getS3Client();
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }

@@ -8,12 +8,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 
-export function MaterialUploadForm() {
+type MaterialUploadFormProps = {
+  maxUploadBytes: number;
+};
+
+function formatSize(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function MaterialUploadForm({ maxUploadBytes }: MaterialUploadFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  async function cleanupPendingMaterial(id: string) {
+    await fetch(`/api/learning-materials/${id}`, { method: "DELETE" }).catch(() => undefined);
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const nextFile = e.target.files?.[0] ?? null;
+    setError("");
+
+    if (nextFile && nextFile.size > maxUploadBytes) {
+      setFile(null);
+      e.target.value = "";
+      setError(`File exceeds the ${formatSize(maxUploadBytes)} limit.`);
+      return;
+    }
+
+    setFile(nextFile);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +80,7 @@ export function MaterialUploadForm() {
         headers: { "Content-Type": data.mimeType },
       });
       if (!putRes.ok) {
+        await cleanupPendingMaterial(data.id);
         setError("Upload to S3 failed.");
         return;
       }
@@ -101,7 +130,8 @@ export function MaterialUploadForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="file">File</Label>
-            <Input id="file" type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <Input id="file" type="file" onChange={onFileChange} />
+            <p className="text-xs text-muted-foreground">Max file size: {formatSize(maxUploadBytes)}.</p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={busy}>

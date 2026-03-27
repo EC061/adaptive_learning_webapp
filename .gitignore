@@ -49,3 +49,6 @@ db.sqlite3
 data/
 docker-compose.override.yml
 ec2-setup.sh
+
+docs/
+scripts/

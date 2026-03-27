@@ -61,6 +61,8 @@ TEACHER_SIGNUP_TOKEN="your-secret-teacher-code"
 OPENAI_API_KEY=""
 OPENAI_SERVICE_TIER="flex"
 OPENAI_MODEL="gpt-5.1"
+AWS_REGION="us-east-1"
+AWS_S3_BUCKET="your-bucket"
 ```
 
 ## Environment Variables
@@ -73,6 +75,23 @@ OPENAI_MODEL="gpt-5.1"
 | `OPENAI_API_KEY` | OpenAI API key |
 | `OPENAI_SERVICE_TIER` | OpenAI service tier |
 | `OPENAI_MODEL` | OpenAI model name |
+| `LEARNING_MATERIAL_MAX_BYTES` | Max upload size (default 52428800) |
+| `AWS_REGION`, `AWS_S3_BUCKET` | Required for learning material uploads (S3) |
+| `AWS_S3_ENDPOINT` | Optional: MinIO / LocalStack (path-style S3) |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Optional if the host uses an IAM role |
+
+## Learning materials
+
+Step-by-step **EC2 + S3** setup (bucket, CORS, IAM) is in [docs/S3_EC2_SETUP.md](docs/S3_EC2_SETUP.md). On the server, `ec2-setup.sh` installs `~/app/scripts/check-s3.sh` to verify credentials and bucket access.
+
+Teachers can upload files at `/teacher/materials`. Each upload creates a `LearningMaterial` row with `storageKey`, `bucket`, `uploadStatus`, and metadata. Files live in S3 only; the app never stores file bytes in PostgreSQL.
+
+`POST /api/learning-materials` returns a short-lived presigned `PUT` URL; the client uploads directly to S3, then calls `POST /api/learning-materials`/`[id]`/`complete` so the server can verify the object with `HeadObject`. Configure CORS on the bucket to allow `PUT` from your web origin.
+
+For LLM or parsing pipelines, load the row by id and read bytes or location:
+
+- `resolveLearningMaterialLocation(materialId)` — returns `{ material, location }` with S3 bucket and key.
+- `readLearningMaterialBytes(materialId)` — returns a `Buffer` from S3.
 
 ## Project Structure
 
@@ -81,7 +100,7 @@ src/
 ├── app/
 │   ├── (auth)/           # Login, Register, Invite pages
 │   ├── (dashboard)/
-│   │   ├── teacher/      # Teacher dashboard, classes, topics, questions
+│   │   ├── teacher/      # Teacher dashboard, classes, topics, questions, materials
 │   │   └── student/      # Student dashboard, class view, module quiz
 │   └── api/              # API routes
 ├── components/
@@ -90,9 +109,10 @@ src/
 ├── lib/
 │   ├── auth.ts           # NextAuth config
 │   ├── prisma.ts         # Prisma client singleton
+│   ├── storage.ts        # S3 presigned URLs and object reads
+│   ├── learning-material.ts  # Resolve location / read bytes for LLM pipelines
 │   └── utils.ts          # Helpers
 ├── types/                # TypeScript types and enums
-└── middleware.ts          # Route protection
 prisma/
 ├── schema.prisma         # Database schema
 ├── seed.ts               # Seeds topics + 26 thermodynamics questions

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   FileQuestion,
+  FileUp,
   LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -34,6 +35,7 @@ export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) 
     { href: "/teacher/classes", label: "My Classes", icon: <Users className="w-4 h-4" /> },
     { href: "/teacher/topics", label: "Topics & Modules", icon: <BookOpen className="w-4 h-4" /> },
     { href: "/teacher/questions", label: "Question Bank", icon: <FileQuestion className="w-4 h-4" /> },
+    { href: "/teacher/materials", label: "Materials", icon: <FileUp className="w-4 h-4" /> },
   ];
 
   const studentNav: NavItem[] = [

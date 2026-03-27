@@ -1,0 +1,114 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Upload } from "lucide-react";
+
+export function MaterialUploadForm() {
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!file) {
+      setError("Choose a file.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const initRes = await fetch("/api/learning-materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim() || undefined,
+          originalName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+        }),
+      });
+      const data = await initRes.json();
+      if (!initRes.ok) {
+        setError(data.error ?? "Could not start upload.");
+        return;
+      }
+
+      if (!data.presignedUrl || !data.id) {
+        setError("Unexpected server response.");
+        return;
+      }
+
+      const putRes = await fetch(data.presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": data.mimeType },
+      });
+      if (!putRes.ok) {
+        setError("Upload to S3 failed.");
+        return;
+      }
+
+      const doneRes = await fetch(`/api/learning-materials/${data.id}/complete`, {
+        method: "POST",
+      });
+      const doneJson = await doneRes.json();
+      if (!doneRes.ok) {
+        setError(doneJson.error ?? "Could not finalize upload.");
+        return;
+      }
+
+      setTitle("");
+      setFile(null);
+      router.refresh();
+    } catch {
+      setError("Failed to upload.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Upload className="w-5 h-5" />
+          Upload materials
+        </CardTitle>
+        <CardDescription>
+          Files are stored in Amazon S3. The app issues a presigned <code className="text-xs bg-muted px-1 rounded">PUT</code> URL
+          so the browser uploads directly to S3; configure <code className="text-xs bg-muted px-1 rounded">AWS_REGION</code>,{" "}
+          <code className="text-xs bg-muted px-1 rounded">AWS_S3_BUCKET</code>, and credentials (or an IAM role on the server).
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-4 max-w-md">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title (optional)</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Week 3 reading"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="file">File</Label>
+            <Input id="file" type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={busy}>
+            {busy ? "Uploading…" : "Upload"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

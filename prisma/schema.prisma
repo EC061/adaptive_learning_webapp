@@ -29,10 +29,31 @@ model Teacher {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  classes   Class[]
-  topics    Topic[]    @relation("TeacherTopics")
-  subtopics Subtopic[] @relation("TeacherSubtopics")
-  questions Question[] @relation("TeacherQuestions")
+  classes            Class[]
+  topics             Topic[]             @relation("TeacherTopics")
+  subtopics          Subtopic[]          @relation("TeacherSubtopics")
+  questions          Question[]          @relation("TeacherQuestions")
+  learningMaterials  LearningMaterial[]
+}
+
+// Uploaded learning materials (S3 only). uploadStatus: "PENDING" | "READY" | "FAILED"
+model LearningMaterial {
+  id           String @id @default(cuid())
+  teacherId    String
+  title        String?
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  bucket       String
+  uploadStatus String @default("PENDING")
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
 }
 
 model Student {

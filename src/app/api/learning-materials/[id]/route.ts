@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteLearningMaterialById, getLearningMaterialById } from "@/lib/learning-material";
 import { deleteS3Object } from "@/lib/storage";
 
 export const runtime = "nodejs";
+
+function describeS3Error(error: unknown): string {
+  const maybeName = (error as { name?: string } | null)?.name;
+  const maybeMessage = (error as { message?: string } | null)?.message;
+
+  if (maybeName === "AccessDenied") {
+    return "S3 denied delete access. Check IAM permissions for s3:DeleteObject on this bucket.";
+  }
+
+  if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+    return maybeMessage;
+  }
+
+  return "Unknown S3 error";
+}
 
 export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -16,22 +32,31 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
 
   const { id } = await context.params;
 
-  const material = await prisma.learningMaterial.findUnique({ where: { id } });
+  const material = await getLearningMaterialById(id);
   if (!material || material.teacherId !== teacher.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  try {
-    await deleteS3Object(material.bucket, material.storageKey);
-  } catch (error) {
-    const maybeStatus = (error as { $metadata?: { httpStatusCode?: number } } | null)?.$metadata?.httpStatusCode;
-    const maybeName = (error as { name?: string } | null)?.name;
-    if (maybeStatus !== 404 && maybeName !== "NoSuchKey") {
-      return NextResponse.json({ error: "Failed to delete S3 object" }, { status: 500 });
+  if (material.uploadStatus === "READY") {
+    try {
+      await deleteS3Object(material.bucket, material.storageKey);
+    } catch (error) {
+      const maybeStatus = (error as { $metadata?: { httpStatusCode?: number } } | null)?.$metadata?.httpStatusCode;
+      const maybeName = (error as { name?: string } | null)?.name;
+      if (maybeStatus !== 404 && maybeName !== "NoSuchKey") {
+        console.error("Failed to delete learning material from S3", {
+          materialId: material.id,
+          bucket: material.bucket,
+          storageKey: material.storageKey,
+          uploadStatus: material.uploadStatus,
+          error,
+        });
+        return NextResponse.json({ error: describeS3Error(error) }, { status: 500 });
+      }
     }
   }
 
-  await prisma.learningMaterial.delete({ where: { id: material.id } });
+  await deleteLearningMaterialById(material.id);
 
   return NextResponse.json({ ok: true });
 }

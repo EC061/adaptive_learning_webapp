@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteLearningMaterialById, getLearningMaterialById } from "@/lib/learning-material";
@@ -19,6 +19,54 @@ function describeS3Error(error: unknown): string {
   }
 
   return "Unknown S3 error";
+}
+
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "TEACHER") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
+  if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+
+  const { id } = await context.params;
+
+  const material = await getLearningMaterialById(id);
+  if (!material || material.teacherId !== teacher.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  let body: { title?: string | null; folder?: string | null };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const updateData: { title?: string | null; folder?: string | null } = {};
+
+  if ("title" in body) {
+    const t = body.title;
+    updateData.title = typeof t === "string" && t.trim().length > 0 ? t.trim().slice(0, 500) : null;
+  }
+
+  if ("folder" in body) {
+    const f = body.folder;
+    updateData.folder = typeof f === "string" && f.trim().length > 0 ? f.trim().slice(0, 200) : null;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const updated = await prisma.learningMaterial.update({
+    where: { id: material.id },
+    data: updateData,
+    select: { id: true, title: true, folder: true },
+  });
+
+  return NextResponse.json({ material: updated });
 }
 
 export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {

@@ -32,6 +32,7 @@ export async function GET() {
       sizeBytes: true,
       bucket: true,
       uploadStatus: true,
+      folder: true,
       createdAt: true,
     },
   });

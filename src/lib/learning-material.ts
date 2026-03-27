@@ -24,6 +24,10 @@ export async function getLearningMaterialById(materialId: string): Promise<Learn
   return prisma.learningMaterial.findUnique({ where: { id: materialId } });
 }
 
+export async function deleteLearningMaterialById(materialId: string): Promise<void> {
+  await prisma.learningMaterial.delete({ where: { id: materialId } });
+}
+
 export async function resolveLearningMaterialLocation(
   materialId: string
 ): Promise<{ material: LearningMaterial; location: LearningMaterialLocation } | null> {

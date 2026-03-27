@@ -18,6 +18,24 @@ function formatSize(n: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+async function describeUploadFailure(res: Response): Promise<string> {
+  const body = await res.text().catch(() => "");
+
+  if (body.includes("<Code>AccessDenied</Code>")) {
+    return "S3 denied the upload. Check IAM permissions for s3:PutObject on this bucket.";
+  }
+
+  if (body.includes("<Code>SignatureDoesNotMatch</Code>")) {
+    return "S3 rejected the upload signature. Verify AWS region, bucket name, and any S3 endpoint override.";
+  }
+
+  if (body.includes("<Code>ExpiredToken</Code>") || body.includes("<Code>InvalidToken</Code>")) {
+    return "AWS credentials for S3 are invalid or expired.";
+  }
+
+  return `Upload to S3 failed (${res.status} ${res.statusText}).`;
+}
+
 export function MaterialUploadForm({ maxUploadBytes }: MaterialUploadFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -81,7 +99,7 @@ export function MaterialUploadForm({ maxUploadBytes }: MaterialUploadFormProps) 
       });
       if (!putRes.ok) {
         await cleanupPendingMaterial(data.id);
-        setError("Upload to S3 failed.");
+        setError(await describeUploadFailure(putRes));
         return;
       }
 
@@ -97,8 +115,8 @@ export function MaterialUploadForm({ maxUploadBytes }: MaterialUploadFormProps) 
       setTitle("");
       setFile(null);
       router.refresh();
-    } catch {
-      setError("Failed to upload.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to upload.");
     } finally {
       setBusy(false);
     }

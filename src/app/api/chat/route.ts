@@ -23,6 +23,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'OpenAI integration is currently unavailable' }, { status: 503 });
     }
 
+    console.log(`[DEBUG] Using OpenAI API Key starting with: ${apiKey.substring(0, 15)}... length=${apiKey.length}`);
+    console.log(`[DEBUG] Model: ${model}, ServiceTier: ${serviceTier}`);
+
     const payload: any = {
       model,
       messages,

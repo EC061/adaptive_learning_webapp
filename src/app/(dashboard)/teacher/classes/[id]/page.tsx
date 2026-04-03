@@ -32,19 +32,19 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   const appUrl = `${proto}://${host}`;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/teacher/classes"><ArrowLeft className="w-4 h-4" /> Classes</Link>
         </Button>
       </div>
 
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">{cls.name}</h1>
           {cls.description && <p className="text-muted-foreground mt-1">{cls.description}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button variant="outline" asChild>
             <Link href={`/teacher/classes/${cls.id}/invite`}><Link2 className="w-4 h-4" /> Invite Link</Link>
           </Button>

@@ -27,13 +27,13 @@ export default async function TeacherDashboard() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Welcome back, {session.user.firstName}!</h1>
           <p className="text-muted-foreground mt-1">Here&apos;s what&apos;s happening in your classes.</p>
         </div>
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href="/teacher/classes/new">
             <Plus className="w-4 h-4" /> New Class
           </Link>
@@ -73,9 +73,9 @@ export default async function TeacherDashboard() {
 
       {/* Recent Classes */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
           <h2 className="text-xl font-semibold">Recent Classes</h2>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href="/teacher/classes">View all</Link>
           </Button>
         </div>

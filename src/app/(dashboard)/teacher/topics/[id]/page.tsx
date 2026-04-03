@@ -72,7 +72,7 @@ export default function TopicModulesPage() {
   if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <Button variant="ghost" size="sm" asChild>
         <Link href="/teacher/topics"><ArrowLeft className="w-4 h-4" /> Topics</Link>
       </Button>
@@ -87,10 +87,10 @@ export default function TopicModulesPage() {
       <Card>
         <CardHeader><CardTitle>Add Module</CardTitle></CardHeader>
         <CardContent>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input placeholder="Module name (e.g. Nature of temperature)" value={newName}
-              onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createSubtopic()} />
-            <Button onClick={createSubtopic} disabled={!newName.trim()}><Plus className="w-4 h-4" /> Add</Button>
+              onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createSubtopic()} className="flex-1" />
+            <Button onClick={createSubtopic} disabled={!newName.trim()} className="shrink-0"><Plus className="w-4 h-4" /> Add</Button>
           </div>
         </CardContent>
       </Card>
@@ -106,8 +106,8 @@ export default function TopicModulesPage() {
         )}
         {subtopics.map((s, i) => (
           <Card key={s.id}>
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3 flex-1">
+            <CardContent className="flex items-start justify-between gap-2 p-4">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
                 <span className="text-sm font-mono text-muted-foreground w-6">{i + 1}.</span>
                 {editingId === s.id ? (
                   <div className="flex items-center gap-2 flex-1">
@@ -122,7 +122,7 @@ export default function TopicModulesPage() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 shrink-0">
                 <Button size="sm" variant="ghost" onClick={() => { setEditingId(s.id); setEditName(s.name); }}>
                   <Pencil className="w-3 h-3" />
                 </Button>

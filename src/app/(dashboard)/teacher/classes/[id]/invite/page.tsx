@@ -72,7 +72,7 @@ export default function InvitePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <div className="p-4 md:p-6 space-y-6 max-w-2xl">
       <Button variant="ghost" size="sm" asChild>
         <Link href={`/teacher/classes/${classId}`}><ArrowLeft className="w-4 h-4" /> Back to class</Link>
       </Button>
@@ -88,7 +88,7 @@ export default function InvitePage() {
       <Card>
         <CardHeader><CardTitle>Generate New Link</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="expires">Expires in (days)</Label>
               <Input id="expires" type="number" min="1" placeholder="Never" value={expiresInDays} onChange={(e) => setExpiresInDays(e.target.value)} />
@@ -112,8 +112,8 @@ export default function InvitePage() {
             {invitations.map((inv) => (
               <div key={inv.id} className="p-3 rounded-lg border space-y-2">
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 text-sm bg-muted px-2 py-1 rounded font-mono truncate">{inv.url}</code>
-                  <Button size="sm" variant="outline" onClick={() => copyLink(inv.url, inv.id)}>
+                  <code className="flex-1 text-sm bg-muted px-2 py-1 rounded font-mono truncate min-w-0">{inv.url}</code>
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => copyLink(inv.url, inv.id)}>
                     {copiedId === inv.id ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
                   </Button>
                 </div>

@@ -40,7 +40,7 @@ export default function NewClassPage() {
   }
 
   return (
-    <div className="p-6 max-w-lg">
+    <div className="p-4 md:p-6 max-w-lg">
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/teacher/classes"><ArrowLeft className="w-4 h-4" /> Back to classes</Link>

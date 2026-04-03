@@ -75,7 +75,7 @@ export default function ClassTopicsPage() {
   if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div>
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/teacher/classes/${classId}`}><ArrowLeft className="w-4 h-4" /> Back to class</Link>
@@ -102,10 +102,10 @@ export default function ClassTopicsPage() {
           ) : (
             <div className="space-y-3">
               {classTopics.map((ct) => (
-                <div key={ct.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={ct.id} className="flex items-start justify-between gap-2 flex-wrap p-3 rounded-lg border">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <BookOpen className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="font-medium">{ct.topic.name}</span>
                       <Badge variant={ct.published ? "success" : "warning"}>
                         {ct.published ? "Published" : "Draft"}
@@ -115,7 +115,7 @@ export default function ClassTopicsPage() {
                       {ct.topic.subtopics.length} module{ct.topic.subtopics.length !== 1 ? "s" : ""}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <Button
                       size="sm"
                       variant={ct.published ? "secondary" : "default"}

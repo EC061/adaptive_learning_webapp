@@ -96,19 +96,19 @@ function QuestionsContent() {
   const topicName = filterTopicId ? questions[0]?.topic?.name : null;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {filterTopicId && (
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/teacher/topics/${filterTopicId}`}><ArrowLeft className="w-4 h-4" /> Back to modules</Link>
         </Button>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Question Bank</h1>
           {subtopicName && topicName && <p className="text-muted-foreground text-sm mt-1">Filtered: {topicName} › {subtopicName}</p>}
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>
+        <Button className="shrink-0" onClick={() => { resetForm(); setShowForm(true); }}>
           <Plus className="w-4 h-4" /> Add Question
         </Button>
       </div>
@@ -122,7 +122,7 @@ function QuestionsContent() {
             <CardTitle>{editingQuestion ? "Edit Question" : "New Question"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Topic</Label>
                 <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.topicId} onChange={(e) => setForm((p) => ({ ...p, topicId: e.target.value, subtopicId: "" }))}>

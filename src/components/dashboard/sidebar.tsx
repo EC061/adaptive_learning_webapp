@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { VersionModal } from "@/components/version-modal";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   BookOpen,
   Users,
@@ -25,9 +26,23 @@ interface SidebarProps {
   firstName: string;
   lastName: string;
   onSignOut: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) {
+function SidebarContent({
+  role,
+  firstName,
+  lastName,
+  onSignOut,
+  onNavigate,
+}: {
+  role: "TEACHER" | "STUDENT";
+  firstName: string;
+  lastName: string;
+  onSignOut: () => void;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   const teacherNav: NavItem[] = [
@@ -46,7 +61,7 @@ export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) 
   const navItems = role === "TEACHER" ? teacherNav : studentNav;
 
   return (
-    <aside className="w-64 min-h-screen bg-sidebar flex flex-col border-r border-sidebar-border">
+    <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
@@ -60,13 +75,18 @@ export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/teacher" && item.href !== "/student" && pathname.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/teacher" &&
+              item.href !== "/student" &&
+              pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
@@ -83,17 +103,21 @@ export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) 
       {/* User */}
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-3 py-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">
+          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400 shrink-0">
             {firstName[0]}{lastName[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{firstName} {lastName}</p>
-            <p className="text-xs text-sidebar-foreground/50 capitalize">{role.toLowerCase()}</p>
+            <p className="text-sm font-medium text-sidebar-foreground truncate">
+              {firstName} {lastName}
+            </p>
+            <p className="text-xs text-sidebar-foreground/50 capitalize">
+              {role.toLowerCase()}
+            </p>
           </div>
         </div>
         <button
           onClick={onSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
         >
           <LogOut className="w-4 h-4" />
           Sign out
@@ -102,6 +126,36 @@ export function Sidebar({ role, firstName, lastName, onSignOut }: SidebarProps) 
           <VersionModal />
         </div>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export function Sidebar({
+  role,
+  firstName,
+  lastName,
+  onSignOut,
+  mobileOpen = false,
+  onMobileClose,
+}: SidebarProps) {
+  const contentProps = { role, firstName, lastName, onSignOut };
+
+  return (
+    <>
+      {/* Desktop sidebar — hidden below md */}
+      <aside className="hidden md:flex w-64 min-h-screen bg-sidebar flex-col border-r border-sidebar-border shrink-0">
+        <SidebarContent {...contentProps} />
+      </aside>
+
+      {/* Mobile drawer — shown below md */}
+      <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
+        <SheetContent side="left" className="p-0 w-64">
+          <SidebarContent
+            {...contentProps}
+            onNavigate={onMobileClose}
+          />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

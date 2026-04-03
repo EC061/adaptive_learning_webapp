@@ -161,7 +161,7 @@ function InviteContent() {
                     </div>
                   </div>
                   <form onSubmit={handleSignupAndJoin} className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label htmlFor="firstName" className="text-xs">First name</Label>
                         <Input id="firstName" value={form.firstName} onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))} required />

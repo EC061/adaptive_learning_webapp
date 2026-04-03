@@ -26,7 +26,7 @@ export default async function StudentsPage({ params }: { params: Promise<{ id: s
   if (!cls) notFound();
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <Button variant="ghost" size="sm" asChild>
         <Link href={`/teacher/classes/${cls.id}`}><ArrowLeft className="w-4 h-4" /> Back to {cls.name}</Link>
       </Button>
@@ -51,15 +51,15 @@ export default async function StudentsPage({ params }: { params: Promise<{ id: s
           ) : (
             <div className="divide-y">
               {cls.enrollments.map((e) => (
-                <div key={e.id} className="flex items-center gap-3 py-3">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">
+                <div key={e.id} className="flex items-center gap-3 py-3 flex-wrap">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm shrink-0">
                     {e.student.user.firstName[0]}{e.student.user.lastName[0]}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">{e.student.user.firstName} {e.student.user.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{e.student.user.email} · @{e.student.user.username}</p>
+                    <p className="text-xs text-muted-foreground truncate">{e.student.user.email} · @{e.student.user.username}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground">Joined {formatDate(e.joinedAt)}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">Joined {formatDate(e.joinedAt)}</span>
                 </div>
               ))}
             </div>

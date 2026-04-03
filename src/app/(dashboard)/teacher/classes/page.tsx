@@ -25,13 +25,13 @@ export default async function ClassesPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">My Classes</h1>
           <p className="text-muted-foreground mt-1">{classes.length} class{classes.length !== 1 ? "es" : ""}</p>
         </div>
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href="/teacher/classes/new"><Plus className="w-4 h-4" /> New Class</Link>
         </Button>
       </div>
@@ -49,22 +49,22 @@ export default async function ClassesPage() {
         <div className="grid gap-4">
           {classes.map((cls) => (
             <Card key={cls.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="flex items-center justify-between p-5">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+              <CardContent className="flex items-start justify-between gap-3 flex-wrap p-5">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-lg font-semibold">{cls.name}</h2>
                     {cls.classTopics.length > 0 && (
                       <Badge variant="success">{cls.classTopics.length} published</Badge>
                     )}
                   </div>
                   {cls.description && <p className="text-sm text-muted-foreground">{cls.description}</p>}
-                  <div className="flex gap-4 text-xs text-muted-foreground pt-1">
+                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground pt-1">
                     <span className="flex items-center gap-1"><Users className="w-3 h-3" />{cls._count.enrollments} students</span>
                     <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{cls._count.classTopics} topics</span>
                     <span>Created {formatDate(cls.createdAt)}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/teacher/classes/${cls.id}/invite`}>Invite</Link>
                   </Button>

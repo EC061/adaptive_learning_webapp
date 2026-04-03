@@ -89,7 +89,7 @@ export default function ModulePage() {
 
   if (phase === "loading") {
     return (
-      <div className="p-6 flex items-center justify-center min-h-64">
+      <div className="p-4 md:p-6 flex items-center justify-center min-h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -97,7 +97,7 @@ export default function ModulePage() {
 
   if (phase === "error") {
     return (
-      <div className="p-6 max-w-xl space-y-4">
+      <div className="p-4 md:p-6 max-w-xl space-y-4">
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/student/classes/${classId}`}><ArrowLeft className="w-4 h-4" /> Back to class</Link>
         </Button>
@@ -118,7 +118,7 @@ export default function ModulePage() {
     const passed = pct >= 60;
 
     return (
-      <div className="p-6 max-w-2xl space-y-6">
+      <div className="p-4 md:p-6 max-w-2xl space-y-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/student/classes/${classId}`}><ArrowLeft className="w-4 h-4" /> Back to class</Link>
         </Button>
@@ -181,7 +181,7 @@ export default function ModulePage() {
 
   // Quiz phase
   return (
-    <div className="p-6 max-w-2xl space-y-6">
+    <div className="p-4 md:p-6 max-w-2xl space-y-6">
       <Button variant="ghost" size="sm" asChild>
         <Link href={`/student/classes/${classId}`}><ArrowLeft className="w-4 h-4" /> Back to class</Link>
       </Button>
@@ -230,17 +230,14 @@ export default function ModulePage() {
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))} disabled={currentIndex === 0}>
-          Previous
-        </Button>
-
-        <div className="flex gap-1">
+      <div className="space-y-3">
+        {/* Question dot navigation — scrollable on narrow screens */}
+        <div className="flex gap-1 overflow-x-auto pb-1">
           {questions.map((q, i) => (
             <button
               key={q.id}
               onClick={() => setCurrentIndex(i)}
-              className={`w-7 h-7 rounded-full text-xs font-medium transition-colors ${
+              className={`w-8 h-8 rounded-full text-xs font-medium transition-colors shrink-0 ${
                 i === currentIndex
                   ? "bg-primary text-primary-foreground"
                   : selections[q.id]
@@ -253,13 +250,19 @@ export default function ModulePage() {
           ))}
         </div>
 
-        {currentIndex < questions.length - 1 ? (
-          <Button onClick={() => setCurrentIndex((i) => i + 1)}>Next</Button>
-        ) : (
-          <Button onClick={submitQuiz} disabled={!allAnswered || submitting}>
-            {submitting ? "Submitting..." : "Submit Quiz"}
+        {/* Prev / Next buttons */}
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))} disabled={currentIndex === 0}>
+            Previous
           </Button>
-        )}
+          {currentIndex < questions.length - 1 ? (
+            <Button onClick={() => setCurrentIndex((i) => i + 1)}>Next</Button>
+          ) : (
+            <Button onClick={submitQuiz} disabled={!allAnswered || submitting}>
+              {submitting ? "Submitting..." : "Submit Quiz"}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

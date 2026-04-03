@@ -62,7 +62,7 @@ export default async function TeacherMaterialsPage() {
     return (
       <Card key={m.id}>
         <CardHeader className="py-3 px-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1 space-y-1">
@@ -80,7 +80,7 @@ export default async function TeacherMaterialsPage() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex flex-col items-end gap-2">
               <div className="flex flex-col items-end gap-1">
                 <Badge
                   variant={m.uploadStatus === "READY" ? "default" : "secondary"}
@@ -107,7 +107,7 @@ export default async function TeacherMaterialsPage() {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-4xl">
+    <div className="p-4 md:p-6 space-y-8 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold">Learning materials</h1>
         <p className="text-muted-foreground mt-1">

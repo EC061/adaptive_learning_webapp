@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const rawModel = process.env.OPENAI_MODEL || 'gpt-5.4';
     const model = rawModel.replace(/^["']|["']$/g, '').trim();
 
-    const rawServiceTier = process.env.OPENAI_SERVICE_TIER || 'default';
+    const rawServiceTier = process.env.OPENAI_SERVICE_TIER || 'flex';
     const serviceTier = rawServiceTier.replace(/^["']|["']$/g, '').trim();
 
     if (!apiKey) {

@@ -11,8 +11,8 @@ export async function POST(req: Request) {
 
     const rawApiKey = process.env.OPENAI_API_KEY || '';
     const apiKey = rawApiKey.replace(/^["']|["']$/g, '').trim();
-    
-    const rawModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+    const rawModel = process.env.OPENAI_MODEL || 'gpt-5.4';
     const model = rawModel.replace(/^["']|["']$/g, '').trim();
 
     const rawServiceTier = process.env.OPENAI_SERVICE_TIER || 'default';
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       stream: true,
       stream_options: { include_usage: true },
     };
-    
+
     // Pass service_tier if it is explicitly 'auto', 'default', or 'flex'
     if (serviceTier === 'auto' || serviceTier === 'default' || serviceTier === 'flex') {
       payload.service_tier = serviceTier;
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         }
 
         lastErrorData = await response.json();
-        
+
         // Only retry on 429 rate limit or 5xx server errors
         if (response.status !== 429 && response.status < 500) {
           break; // Do not retry mostly deterministic errors
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     if (!response || !response.ok) {
       console.error('OpenAI Error:', lastErrorData);
       return NextResponse.json(
-        { error: 'Failed to communicate with OpenAI' }, 
+        { error: 'Failed to communicate with OpenAI' },
         { status: response ? response.status : 500 }
       );
     }

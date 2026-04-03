@@ -48,11 +48,67 @@ export default function Chatbot() {
         throw new Error('Failed to fetch from API');
       }
 
-      const data = await response.json();
-      if (data.message) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.message.content }]);
-      } else {
-        throw new Error('Invalid response payload');
+      setIsLoading(false);
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage = '';
+
+      const startTime = Date.now();
+      let firstTokenTime: number | null = null;
+      let completionTokens = 0;
+
+      if (reader) {
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data: ') && trimmedLine !== 'data: [DONE]') {
+              try {
+                const data = JSON.parse(trimmedLine.slice(6));
+                
+                if (data.usage?.completion_tokens) {
+                  completionTokens = data.usage.completion_tokens;
+                }
+                
+                if (data.choices && data.choices.length > 0 && data.choices[0].delta?.content) {
+                  if (!firstTokenTime) {
+                    firstTokenTime = Date.now();
+                  }
+                  assistantMessage += data.choices[0].delta.content;
+                  setMessages((prev) => {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1].content = assistantMessage;
+                    return newMessages;
+                  });
+                }
+              } catch (e) {
+                // Ignore parse errors from fragmentary chunks
+              }
+            }
+          }
+        }
+      }
+
+      const endTime = Date.now();
+      const ttft = firstTokenTime ? firstTokenTime - startTime : 0;
+      const streamingDuration = firstTokenTime ? (endTime - firstTokenTime) / 1000 : 0;
+      const tps = (completionTokens && streamingDuration > 0) ? (completionTokens / streamingDuration).toFixed(1) : 0;
+      
+      if (ttft > 0 && completionTokens > 0) {
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].content = assistantMessage + `\n\n*(TTFT: ${ttft}ms | ${tps} tok/s)*`;
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error(error);

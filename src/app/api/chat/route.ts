@@ -34,24 +34,34 @@ function buildQuizReviewPrompt(attempt: {
     };
   }>;
 }) {
+  const incorrectAnswers = attempt.answers.filter((answer) => !answer.isCorrect);
+  const correctAnswerCount = attempt.answers.length - incorrectAnswers.length;
   const lines = [
     "You are an educational assistant reviewing a student's latest completed quiz attempt.",
-    "Provide a clean, readable response directly to the student.",
-    "Start with a short summary of how they did.",
-    "Then include sections titled Main Errors, Possible Misconceptions, and Next Steps.",
-    "Focus on teaching and explanation, not just giving an answer key.",
-    "Use the student's answers as evidence for your analysis.",
+    "Write a concise markdown response directly to the student.",
+    "Do not review the quiz question by question.",
+    "Summarize the student's main misconceptions or learning gaps across the attempt.",
+    "Use exactly three short sections titled Summary, Main Misconceptions, and Next Steps.",
+    "Keep the full response under 120 words.",
+    "Under Main Misconceptions, use at most 2 bullet points.",
+    "Under Next Steps, use at most 2 bullet points.",
+    "Only mention a specific question if it is essential evidence for a broader misconception.",
     "",
     `Class: ${attempt.class.name}`,
     `Topic: ${attempt.subtopic.topic.name}`,
     `Module: ${attempt.subtopic.name}`,
     `Score: ${attempt.score ?? 0}%`,
     `Completed at: ${attempt.completedAt?.toISOString() ?? "Unknown"}`,
+    `Questions answered: ${attempt.answers.length}`,
+    `Correct answers: ${correctAnswerCount}`,
+    `Incorrect answers: ${incorrectAnswers.length}`,
     "",
-    "Quiz attempt details:",
+    incorrectAnswers.length > 0
+      ? "Evidence from incorrect answers:"
+      : "The student answered every question correctly. Reinforce what they understood and suggest one useful next step.",
   ];
 
-  attempt.answers.forEach((answer, index) => {
+  incorrectAnswers.forEach((answer, index) => {
     const correctOptions = answer.question.options
       .filter((option) => option.isCorrect)
       .map((option) => option.text);
@@ -59,7 +69,6 @@ function buildQuizReviewPrompt(attempt: {
     lines.push(
       `${index + 1}. Question: ${answer.question.text}`,
       `   Student selection: ${answer.selectedOption?.text ?? "No answer selected"}`,
-      `   Result: ${answer.isCorrect ? "Correct" : "Incorrect"}`,
       `   Correct answer: ${correctOptions.length > 0 ? correctOptions.join(" | ") : "Unknown"}`
     );
   });
@@ -131,7 +140,12 @@ async function buildMessages(mode: ChatMode, messages: ChatMessage[]) {
   };
 }
 
-async function sendChatCompletion(messages: ChatMessage[]) {
+async function sendChatCompletion(
+  messages: ChatMessage[],
+  options?: {
+    maxCompletionTokens?: number;
+  }
+) {
   const rawApiKey = process.env.OPENAI_API_KEY || "";
   const apiKey = rawApiKey.replace(/^["']|["']$/g, "").trim();
 
@@ -152,6 +166,7 @@ async function sendChatCompletion(messages: ChatMessage[]) {
     temperature: number;
     stream: boolean;
     stream_options: { include_usage: true };
+    max_completion_tokens?: number;
     service_tier?: string;
   } = {
     model,
@@ -163,6 +178,10 @@ async function sendChatCompletion(messages: ChatMessage[]) {
 
   if (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex") {
     payload.service_tier = serviceTier;
+  }
+
+  if (options?.maxCompletionTokens) {
+    payload.max_completion_tokens = options.maxCompletionTokens;
   }
 
   let response: Response | null = null;
@@ -235,7 +254,9 @@ export async function POST(req: Request) {
       return new Response(null, { status: 204 });
     }
 
-    return sendChatCompletion(resolved.messages);
+    return sendChatCompletion(resolved.messages, {
+      maxCompletionTokens: mode === "quiz-review" ? 180 : undefined,
+    });
   } catch (error) {
     console.error("Error handling chat request:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

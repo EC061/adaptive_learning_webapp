@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eraser, MessageCircle, Send, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { Rnd } from "react-rnd";
+import remarkGfm from "remark-gfm";
 
 type Message = {
   role: "user" | "assistant";
@@ -10,10 +13,91 @@ type Message = {
 
 type ChatMode = "chat" | "quiz-review";
 
+type ViewportSize = {
+  width: number;
+  height: number;
+};
+
+type PanelState = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 const INITIAL_ASSISTANT_MESSAGE = "Hello! How can I help you today?";
+const PANEL_MARGIN = 16;
+const DEFAULT_CHAT_WIDTH = 384;
+const DEFAULT_CHAT_HEIGHT = 500;
+const PREFERRED_MIN_CHAT_WIDTH = 280;
+const PREFERRED_MIN_CHAT_HEIGHT = 360;
+const ASSISTANT_MARKDOWN_CLASS_NAME =
+  "[&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_a]:underline-offset-2 dark:[&_a]:text-blue-400 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic dark:[&_blockquote]:border-gray-600 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-gray-950 [&_pre]:p-3 [&_pre]:text-gray-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_code]:rounded [&_code]:bg-gray-200/70 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em] dark:[&_code]:bg-gray-700/80";
 
 function getInitialMessages(): Message[] {
   return [{ role: "assistant", content: INITIAL_ASSISTANT_MESSAGE }];
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getViewportSize(): ViewportSize {
+  if (typeof window === "undefined") {
+    return { width: 0, height: 0 };
+  }
+
+  return { width: window.innerWidth, height: window.innerHeight };
+}
+
+function getPanelLimits(viewport: ViewportSize) {
+  const maxWidth = Math.max(1, viewport.width - PANEL_MARGIN * 2);
+  const maxHeight = Math.max(1, viewport.height - PANEL_MARGIN * 2);
+
+  return {
+    minWidth: Math.min(PREFERRED_MIN_CHAT_WIDTH, maxWidth),
+    minHeight: Math.min(PREFERRED_MIN_CHAT_HEIGHT, maxHeight),
+    maxWidth,
+    maxHeight,
+  };
+}
+
+function createInitialPanelState(viewport: ViewportSize): PanelState {
+  const limits = getPanelLimits(viewport);
+  const width = clamp(DEFAULT_CHAT_WIDTH, limits.minWidth, limits.maxWidth);
+  const height = clamp(DEFAULT_CHAT_HEIGHT, limits.minHeight, limits.maxHeight);
+
+  return {
+    width,
+    height,
+    x: Math.max(PANEL_MARGIN, viewport.width - width - PANEL_MARGIN),
+    y: Math.max(PANEL_MARGIN, viewport.height - height - PANEL_MARGIN),
+  };
+}
+
+function constrainPanelState(
+  panelState: PanelState | null,
+  viewport: ViewportSize
+): PanelState | null {
+  if (!viewport.width || !viewport.height) {
+    return panelState;
+  }
+
+  const limits = getPanelLimits(viewport);
+  const basePanelState = panelState ?? createInitialPanelState(viewport);
+  const width = clamp(basePanelState.width, limits.minWidth, limits.maxWidth);
+  const height = clamp(basePanelState.height, limits.minHeight, limits.maxHeight);
+
+  return {
+    width,
+    height,
+    x: clamp(basePanelState.x, PANEL_MARGIN, Math.max(PANEL_MARGIN, viewport.width - width - PANEL_MARGIN)),
+    y: clamp(
+      basePanelState.y,
+      PANEL_MARGIN,
+      Math.max(PANEL_MARGIN, viewport.height - height - PANEL_MARGIN)
+    ),
+  };
 }
 
 export default function Chatbot() {
@@ -22,6 +106,8 @@ export default function Chatbot() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoReviewTriggered, setHasAutoReviewTriggered] = useState(false);
+  const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
+  const [panelState, setPanelState] = useState<PanelState | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const activeRequestIdRef = useRef(0);
@@ -35,6 +121,21 @@ export default function Chatbot() {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    const syncViewport = () => {
+      const nextViewport = getViewportSize();
+      setViewportSize(nextViewport);
+      setPanelState((prev) => constrainPanelState(prev, nextViewport));
+    };
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+
+    return () => {
+      window.removeEventListener("resize", syncViewport);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen || hasAutoReviewTriggered) return;
@@ -224,103 +325,144 @@ export default function Chatbot() {
     await sendRequest({ messages: nextMessages, mode: "chat" });
   };
 
+  const panelLimits = getPanelLimits(viewportSize);
+
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      {isOpen ? (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl w-80 sm:w-96 flex flex-col h-[500px] overflow-hidden transition-all duration-300">
-          {/* Header */}
-          <div className="bg-blue-600 px-4 py-3 flex items-center justify-between text-white">
-            <div className="flex items-center space-x-2">
-              <MessageCircle size={20} />
-              <h3 className="font-semibold text-sm">AI Assistant</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleClearContext}
-                className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-white/10"
-                aria-label="Clear context"
-                type="button"
-              >
-                <Eraser size={14} />
-                Clear
-              </button>
-              <button
-                onClick={handleClose}
-                className="text-white hover:text-gray-200 transition-colors"
-                aria-label="Close chat"
-                type="button"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-950">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
-                    message.role === "user"
-                      ? "bg-blue-600 text-white rounded-tr-sm"
-                      : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-sm shadow-sm whitespace-pre-wrap"
-                  }`}
-                >
-                  {message.content}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl rounded-tl-sm border border-gray-100 dark:border-gray-700 shadow-sm flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input area */}
-          <div className="p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSend();
-              }}
-              className="flex items-center space-x-2"
-            >
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-700 rounded-full bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Send message"
-              >
-                <Send size={18} />
-              </button>
-            </form>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center group"
-          aria-label="Open chat"
+    <div className="pointer-events-none fixed inset-0 z-50">
+      {isOpen && panelState ? (
+        <Rnd
+          bounds="parent"
+          className="pointer-events-auto"
+          position={{ x: panelState.x, y: panelState.y }}
+          size={{ width: panelState.width, height: panelState.height }}
+          minWidth={panelLimits.minWidth}
+          minHeight={panelLimits.minHeight}
+          maxWidth={panelLimits.maxWidth}
+          maxHeight={panelLimits.maxHeight}
+          dragHandleClassName="chatbot-drag-handle"
+          cancel=".chatbot-no-drag"
+          enableResizing={{ bottomRight: true }}
+          resizeHandleComponent={{
+            bottomRight: (
+              <div className="h-4 w-4 cursor-se-resize rounded-tl-md border-l border-t border-gray-300 bg-white/80 dark:border-gray-600 dark:bg-gray-800/80" />
+            ),
+          }}
+          onDragStop={(_event, data) => {
+            setPanelState((prev) => (prev ? { ...prev, x: data.x, y: data.y } : prev));
+          }}
+          onResizeStop={(_event, _direction, ref, _delta, position) => {
+            setPanelState({
+              width: ref.offsetWidth,
+              height: ref.offsetHeight,
+              x: position.x,
+              y: position.y,
+            });
+          }}
         >
-          <MessageCircle size={24} className="group-hover:animate-pulse" />
-        </button>
+          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="chatbot-drag-handle flex cursor-move select-none items-center justify-between bg-blue-600 px-4 py-3 text-white touch-none">
+              <div className="flex items-center space-x-2">
+                <MessageCircle size={20} />
+                <h3 className="text-sm font-semibold">AI Assistant</h3>
+              </div>
+              <div className="chatbot-no-drag flex items-center gap-2">
+                <button
+                  onClick={handleClearContext}
+                  className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-white/10"
+                  aria-label="Clear context"
+                  type="button"
+                >
+                  <Eraser size={14} />
+                  Clear
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="text-white transition-colors hover:text-gray-200"
+                  aria-label="Close chat"
+                  type="button"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="chatbot-no-drag flex-1 space-y-4 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                      message.role === "user"
+                        ? "rounded-tr-sm bg-blue-600 whitespace-pre-wrap text-white"
+                        : `rounded-tl-sm border border-gray-100 bg-white text-gray-800 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 ${ASSISTANT_MARKDOWN_CLASS_NAME}`
+                    }`}
+                  >
+                    {message.role === "assistant" ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    ) : (
+                      message.content
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="flex items-center space-x-1 rounded-2xl rounded-tl-sm border border-gray-100 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400"></div>
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "0.4s" }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="chatbot-no-drag border-t border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSend();
+                }}
+                className="flex items-center space-x-2"
+              >
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-full border border-gray-300 bg-gray-50 p-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={!input.trim() || isLoading}
+                  className="rounded-full bg-blue-600 p-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Send message"
+                >
+                  <Send size={18} />
+                </button>
+              </form>
+            </div>
+          </div>
+        </Rnd>
+      ) : (
+        <div className="pointer-events-auto absolute bottom-4 right-4">
+          <button
+            onClick={() => setIsOpen(true)}
+            className="group flex items-center justify-center rounded-full bg-blue-600 p-4 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-700 hover:shadow-xl"
+            aria-label="Open chat"
+          >
+            <MessageCircle size={24} className="group-hover:animate-pulse" />
+          </button>
+        </div>
       )}
     </div>
   );

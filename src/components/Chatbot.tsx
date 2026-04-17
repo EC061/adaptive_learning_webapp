@@ -1,24 +1,33 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { Eraser, MessageCircle, Send, X } from "lucide-react";
 
 type Message = {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 };
 
+type ChatMode = "chat" | "quiz-review";
+
+const INITIAL_ASSISTANT_MESSAGE = "Hello! How can I help you today?";
+
+function getInitialMessages(): Message[] {
+  return [{ role: "assistant", content: INITIAL_ASSISTANT_MESSAGE }];
+}
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! How can I help you today?' },
-  ]);
-  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages);
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAutoReviewTriggered, setHasAutoReviewTriggered] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeRequestIdRef = useRef(0);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -27,71 +36,133 @@ export default function Chatbot() {
     }
   }, [messages, isOpen]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    if (!isOpen || hasAutoReviewTriggered) return;
 
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    setHasAutoReviewTriggered(true);
+    void sendRequest({ messages: getInitialMessages(), mode: "quiz-review" });
+  }, [hasAutoReviewTriggered, isOpen]);
+
+  const cancelActiveRequest = () => {
+    activeRequestIdRef.current += 1;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsLoading(false);
+  };
+
+  const resetConversation = () => {
+    cancelActiveRequest();
+    setMessages(getInitialMessages());
+    setInput("");
+  };
+
+  const handleClose = () => {
+    resetConversation();
+    setHasAutoReviewTriggered(false);
+    setIsOpen(false);
+  };
+
+  const handleClearContext = () => {
+    resetConversation();
+  };
+
+  const sendRequest = async ({
+    messages: requestMessages,
+    mode,
+  }: {
+    messages: Message[];
+    mode: ChatMode;
+  }) => {
+    cancelActiveRequest();
+
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          mode,
+          messages: requestMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch from API');
+      if (response.status === 204) {
+        return;
       }
 
-      setIsLoading(false);
-      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+      if (!response.ok) {
+        throw new Error("Failed to fetch from API");
+      }
+
+      if (activeRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantMessage = '';
+      let assistantMessage = "";
 
       const startTime = Date.now();
       let firstTokenTime: number | null = null;
       let completionTokens = 0;
 
       if (reader) {
-        let buffer = '';
+        let buffer = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
+          if (activeRequestIdRef.current !== requestId) {
+            return;
+          }
+
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-          
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
           for (const line of lines) {
             const trimmedLine = line.trim();
-            if (trimmedLine.startsWith('data: ') && trimmedLine !== 'data: [DONE]') {
+            if (trimmedLine.startsWith("data: ") && trimmedLine !== "data: [DONE]") {
               try {
                 const data = JSON.parse(trimmedLine.slice(6));
-                
+
                 if (data.usage?.completion_tokens) {
                   completionTokens = data.usage.completion_tokens;
                 }
-                
+
                 if (data.choices && data.choices.length > 0 && data.choices[0].delta?.content) {
                   if (!firstTokenTime) {
                     firstTokenTime = Date.now();
                   }
+
                   assistantMessage += data.choices[0].delta.content;
                   setMessages((prev) => {
-                    const newMessages = [...prev];
-                    newMessages[newMessages.length - 1].content = assistantMessage;
-                    return newMessages;
+                    if (activeRequestIdRef.current !== requestId || prev.length === 0) {
+                      return prev;
+                    }
+
+                    const nextMessages = [...prev];
+                    nextMessages[nextMessages.length - 1] = {
+                      role: "assistant",
+                      content: assistantMessage,
+                    };
+                    return nextMessages;
                   });
                 }
-              } catch (e) {
-                // Ignore parse errors from fragmentary chunks
+              } catch {
+                // Ignore parse errors from fragmentary chunks.
               }
             }
           }
@@ -101,21 +172,56 @@ export default function Chatbot() {
       const endTime = Date.now();
       const ttft = firstTokenTime ? firstTokenTime - startTime : 0;
       const streamingDuration = firstTokenTime ? (endTime - firstTokenTime) / 1000 : 0;
-      const tps = (completionTokens && streamingDuration > 0) ? (completionTokens / streamingDuration).toFixed(1) : 0;
-      
+      const tps =
+        completionTokens && streamingDuration > 0
+          ? (completionTokens / streamingDuration).toFixed(1)
+          : 0;
+
       if (ttft > 0 && completionTokens > 0) {
         setMessages((prev) => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1].content = assistantMessage + `\n\n*(TTFT: ${ttft}ms | ${tps} tok/s)*`;
-          return newMessages;
+          if (activeRequestIdRef.current !== requestId || prev.length === 0) {
+            return prev;
+          }
+
+          const nextMessages = [...prev];
+          nextMessages[nextMessages.length - 1] = {
+            role: "assistant",
+            content: `${assistantMessage}\n\n*(TTFT: ${ttft}ms | ${tps} tok/s)*`,
+          };
+          return nextMessages;
         });
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
       console.error(error);
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, an error occurred while processing your request.' }]);
+      if (activeRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Sorry, an error occurred while processing your request." },
+      ]);
     } finally {
-      setIsLoading(false);
+      if (activeRequestIdRef.current === requestId) {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+      }
     }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: "user", content: input };
+    const nextMessages = [...messages, userMessage];
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    await sendRequest({ messages: nextMessages, mode: "chat" });
   };
 
   return (
@@ -128,13 +234,25 @@ export default function Chatbot() {
               <MessageCircle size={20} />
               <h3 className="font-semibold text-sm">AI Assistant</h3>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-200 transition-colors"
-              aria-label="Close chat"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleClearContext}
+                className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-white/10"
+                aria-label="Clear context"
+                type="button"
+              >
+                <Eraser size={14} />
+                Clear
+              </button>
+              <button
+                onClick={handleClose}
+                className="text-white hover:text-gray-200 transition-colors"
+                aria-label="Close chat"
+                type="button"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Messages area */}
@@ -142,13 +260,13 @@ export default function Chatbot() {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-tr-sm'
-                      : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-sm shadow-sm'
+                    message.role === "user"
+                      ? "bg-blue-600 text-white rounded-tr-sm"
+                      : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-sm shadow-sm whitespace-pre-wrap"
                   }`}
                 >
                   {message.content}

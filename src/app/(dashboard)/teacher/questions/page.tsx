@@ -2,12 +2,14 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { parseQtiQuestionBank } from "@/lib/question-import/qti";
 import { Plus, Pencil, Trash2, Check, X, ArrowLeft, FileQuestion, Upload } from "lucide-react";
 
 type AnswerMode = "SINGLE_SELECT" | "MULTI_SELECT";
@@ -145,19 +147,40 @@ function QuestionsContent() {
     setMsg("");
     setImportSummary(null);
     if (!importTopicId || !importSubtopicId || !importFile) {
-      setMsg("Choose a topic, module, and YAML file to import.");
+      setMsg("Choose a topic, module, and QTI ZIP file to import.");
+      return;
+    }
+    if (!importFile.name.toLowerCase().endsWith(".zip")) {
+      setMsg("Only QTI .zip files are supported.");
       return;
     }
 
-    const body = new FormData();
-    body.append("topicId", importTopicId);
-    body.append("subtopicId", importSubtopicId);
-    body.append("file", importFile);
-    if (importSourcePath.trim()) body.append("sourcePath", importSourcePath.trim());
-
     setImportBusy(true);
     try {
-      const res = await fetch("/api/question-imports", { method: "POST", body });
+      const zip = await JSZip.loadAsync(importFile);
+      const qtiXml = zip.file("qti/qti.xml");
+      if (!qtiXml) {
+        setMsg("The QTI ZIP must contain qti/qti.xml.");
+        return;
+      }
+
+      const parsed = parseQtiQuestionBank(await qtiXml.async("text"));
+      if (parsed.questions.length === 0 && parsed.errors.length === 0) {
+        setMsg("No questions were found in qti/qti.xml.");
+        return;
+      }
+
+      const res = await fetch("/api/question-imports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicId: importTopicId,
+          subtopicId: importSubtopicId,
+          originalName: importFile.name,
+          sourcePath: importSourcePath.trim() || undefined,
+          ...parsed,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) {
         setMsg(data.error ?? "Import failed.");
@@ -206,7 +229,7 @@ function QuestionsContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Upload a YAML/YML question bank into a topic module. Imported questions keep their original title, points, feedback, source file, and source question id.
+            Upload a QTI ZIP question bank into a topic module. The ZIP is opened in your browser, and only parsed questions are sent to the server.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -226,8 +249,8 @@ function QuestionsContent() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>YAML File</Label>
-              <Input type="file" accept=".yaml,.yml" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} />
+              <Label>QTI ZIP File</Label>
+              <Input type="file" accept=".zip,application/zip" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} />
             </div>
             <div className="space-y-2">
               <Label>Source folder/path (optional)</Label>
@@ -235,7 +258,7 @@ function QuestionsContent() {
             </div>
           </div>
           <Button onClick={importQuestions} disabled={importBusy || !importTopicId || !importSubtopicId || !importFile}>
-            {importBusy ? "Importing..." : "Import YAML"}
+            {importBusy ? "Importing..." : "Import QTI ZIP"}
           </Button>
           {importSummary && (
             <div className="rounded-md border p-3 text-sm space-y-2">

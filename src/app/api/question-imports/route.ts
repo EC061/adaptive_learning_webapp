@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseYamlQuestionBank, QuestionImportError } from "@/lib/question-import/yaml";
+import { QuestionImportError, validateParsedQuestionBank } from "@/lib/question-import/qti";
 
 export const runtime = "nodejs";
 
-const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
-
-function cleanFormValue(value: FormDataEntryValue | null): string {
+function cleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function isYamlFilename(name: string): boolean {
-  const lower = name.toLowerCase();
-  return lower.endsWith(".yaml") || lower.endsWith(".yml");
 }
 
 function serializeErrors(errors: QuestionImportError[]) {
@@ -33,32 +26,25 @@ export async function POST(req: NextRequest) {
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
-  let formData: FormData;
+  let payload: unknown;
   try {
-    formData = await req.formData();
+    payload = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid multipart form data." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON import payload." }, { status: 400 });
   }
 
-  const topicId = cleanFormValue(formData.get("topicId"));
-  const subtopicId = cleanFormValue(formData.get("subtopicId"));
-  const sourcePath = cleanFormValue(formData.get("sourcePath")) || null;
-  const file = formData.get("file");
+  const importPayload = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+  const topicId = cleanString(importPayload.topicId);
+  const subtopicId = cleanString(importPayload.subtopicId);
+  const originalName = cleanString(importPayload.originalName);
+  const sourcePath = cleanString(importPayload.sourcePath) || null;
 
   if (!topicId || !subtopicId) {
     return NextResponse.json({ error: "topicId and subtopicId are required." }, { status: 400 });
   }
 
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "A YAML file is required." }, { status: 400 });
-  }
-
-  if (!isYamlFilename(file.name)) {
-    return NextResponse.json({ error: "Only .yaml and .yml files are supported." }, { status: 400 });
-  }
-
-  if (file.size < 1 || file.size > MAX_IMPORT_BYTES) {
-    return NextResponse.json({ error: `File size must be between 1 byte and ${MAX_IMPORT_BYTES} bytes.` }, { status: 400 });
+  if (!originalName) {
+    return NextResponse.json({ error: "originalName is required." }, { status: 400 });
   }
 
   const subtopic = await prisma.subtopic.findUnique({ where: { id: subtopicId } });
@@ -68,10 +54,10 @@ export async function POST(req: NextRequest) {
 
   let parsed;
   try {
-    parsed = parseYamlQuestionBank(await file.text());
+    parsed = validateParsedQuestionBank(importPayload);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not parse YAML file." },
+      { error: error instanceof Error ? error.message : "Invalid question import payload." },
       { status: 400 }
     );
   }
@@ -82,7 +68,7 @@ export async function POST(req: NextRequest) {
         teacherId: teacher.id,
         topicId,
         subtopicId,
-        originalName: file.name,
+        originalName,
         sourcePath,
         bankId: parsed.bankId,
         bankTitle: parsed.bankTitle,
@@ -107,7 +93,7 @@ export async function POST(req: NextRequest) {
           import: {
             is: {
               teacherId: teacher.id,
-              originalName: file.name,
+              originalName,
               sourcePath,
             },
           },

@@ -85,8 +85,29 @@ function getQuestionPayload(entry: unknown): { type: string; payload: UnknownRec
   return null;
 }
 
+function normalizeInlineBlockScalarHeaders(contents: string): string {
+  const usesCrLf = contents.includes("\r\n");
+  const lines = contents.replace(/\r\n/g, "\n").split("\n");
+  const normalizedLines: string[] = [];
+
+  for (const line of lines) {
+    const match = line.match(/^(\s*(?:-\s*)?[^#\n]*?:\s*)([|>][+-]?\d?)([ \t]+)(\S.*)$/);
+    if (!match || match[4].trimStart().startsWith("#")) {
+      normalizedLines.push(line);
+      continue;
+    }
+
+    const leadingIndent = line.match(/^(\s*)/)?.[1] ?? "";
+    normalizedLines.push(`${match[1]}${match[2]}`);
+    normalizedLines.push(`${leadingIndent}    ${match[4]}`);
+  }
+
+  const normalized = normalizedLines.join("\n");
+  return usesCrLf ? normalized.replace(/\n/g, "\r\n") : normalized;
+}
+
 export function parseYamlQuestionBank(contents: string): ParsedQuestionBank {
-  const parsed = parse(contents) as unknown;
+  const parsed = parse(normalizeInlineBlockScalarHeaders(contents)) as unknown;
   if (!isRecord(parsed)) {
     throw new Error("YAML must contain a top-level object.");
   }

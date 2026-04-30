@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { GraduationCap, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { SessionProvider } from "next-auth/react";
+import { PASSWORD_REQUIREMENTS, validatePassword } from "@/lib/account-validation";
 
 interface InviteInfo {
   valid: boolean;
@@ -28,7 +29,14 @@ function InviteContent() {
   const [success, setSuccess] = useState(false);
 
   // Signup form
-  const [form, setForm] = useState({ firstName: "", lastName: "", username: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   useEffect(() => {
     fetch(`/api/invitations/${token}`)
@@ -64,6 +72,18 @@ function InviteContent() {
   async function handleSignupAndJoin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    const passwordError = validatePassword(form.password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
     setJoining(true);
     try {
       const res = await fetch(`/api/invitations/${token}`, {
@@ -182,6 +202,13 @@ function InviteContent() {
                     <div className="space-y-1">
                       <Label htmlFor="password" className="text-xs">Password</Label>
                       <Input id="password" type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} required />
+                      <p className="text-xs text-muted-foreground">
+                        {PASSWORD_REQUIREMENTS}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="confirmPassword" className="text-xs">Confirm password</Label>
+                      <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))} required />
                     </div>
                     <Button type="submit" className="w-full" disabled={joining}>
                       {joining ? "Creating account & joining..." : "Create account & join class"}

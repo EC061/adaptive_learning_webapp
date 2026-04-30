@@ -8,6 +8,22 @@ type ChatMessage = {
 };
 
 type ChatMode = "chat" | "quiz-review";
+type ChatProvider = "openai" | "local";
+
+function cleanEnvValue(value: string | undefined, fallback = "") {
+  return (value || fallback).replace(/^["']|["']$/g, "").trim();
+}
+
+function resolveChatProvider(value: unknown): ChatProvider {
+  return value === "local" ? "local" : "openai";
+}
+
+function resolveLocalChatEndpoint(endpoint: string) {
+  const normalizedEndpoint = endpoint.replace(/\/+$/, "");
+  return normalizedEndpoint.endsWith("/chat/completions")
+    ? normalizedEndpoint
+    : `${normalizedEndpoint}/chat/completions`;
+}
 
 function isChatMessageArray(value: unknown): value is ChatMessage[] {
   return Array.isArray(value) && value.every((message) => {
@@ -144,20 +160,31 @@ async function sendChatCompletion(
   messages: ChatMessage[],
   options?: {
     maxCompletionTokens?: number;
+    provider?: ChatProvider;
   }
 ) {
-  const rawApiKey = process.env.OPENAI_API_KEY || "";
-  const apiKey = rawApiKey.replace(/^["']|["']$/g, "").trim();
+  const provider = options?.provider ?? "openai";
+  const isLocalProvider = provider === "local";
+  const apiKey = isLocalProvider
+    ? cleanEnvValue(process.env.LOCAL_API_TOKEN)
+    : cleanEnvValue(process.env.OPENAI_API_KEY);
+  const model = isLocalProvider
+    ? cleanEnvValue(process.env.LOCAL_MODEL, "local")
+    : cleanEnvValue(process.env.OPENAI_MODEL, "gpt-5.4");
+  const serviceTier = cleanEnvValue(process.env.OPENAI_SERVICE_TIER, "flex");
+  const localEndpoint = cleanEnvValue(process.env.LOCAL_API_ENDPOINT);
+  const endpoint = isLocalProvider
+    ? (localEndpoint ? resolveLocalChatEndpoint(localEndpoint) : "")
+    : "https://api.openai.com/v1/chat/completions";
 
-  const rawModel = process.env.OPENAI_MODEL || "gpt-5.4";
-  const model = rawModel.replace(/^["']|["']$/g, "").trim();
-
-  const rawServiceTier = process.env.OPENAI_SERVICE_TIER || "flex";
-  const serviceTier = rawServiceTier.replace(/^["']|["']$/g, "").trim();
-
-  if (!apiKey) {
+  if (!isLocalProvider && !apiKey) {
     console.error("OPENAI_API_KEY is not set");
     return NextResponse.json({ error: "OpenAI integration is currently unavailable" }, { status: 503 });
+  }
+
+  if (isLocalProvider && !endpoint) {
+    console.error("LOCAL_API_ENDPOINT is not set");
+    return NextResponse.json({ error: "Local chat integration is currently unavailable" }, { status: 503 });
   }
 
   const payload: {
@@ -165,7 +192,7 @@ async function sendChatCompletion(
     messages: ChatMessage[];
     temperature: number;
     stream: boolean;
-    stream_options: { include_usage: true };
+    stream_options?: { include_usage: true };
     max_completion_tokens?: number;
     service_tier?: string;
   } = {
@@ -173,11 +200,11 @@ async function sendChatCompletion(
     messages,
     temperature: 0.7,
     stream: true,
-    stream_options: { include_usage: true },
   };
 
-  if (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex") {
+  if (!isLocalProvider && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")) {
     payload.service_tier = serviceTier;
+    payload.stream_options = { include_usage: true };
   }
 
   if (options?.maxCompletionTokens) {
@@ -186,17 +213,17 @@ async function sendChatCompletion(
 
   let response: Response | null = null;
   let attempt = 0;
-  const maxRetries = serviceTier === "flex" ? 3 : 0;
+  const maxRetries = !isLocalProvider && serviceTier === "flex" ? 3 : 0;
   let baseDelay = 1000;
   let lastErrorData: unknown = null;
 
   while (attempt <= maxRetries) {
     try {
-      response = await fetch("https://api.openai.com/v1/chat/completions", {
+      response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -216,16 +243,16 @@ async function sendChatCompletion(
 
     attempt++;
     if (attempt <= maxRetries) {
-      console.warn(`OpenAI request failed, retrying in ${baseDelay}ms... (Attempt ${attempt}/${maxRetries})`);
+      console.warn(`${provider} chat request failed, retrying in ${baseDelay}ms... (Attempt ${attempt}/${maxRetries})`);
       await new Promise((resolve) => setTimeout(resolve, baseDelay));
       baseDelay *= 2;
     }
   }
 
   if (!response || !response.ok) {
-    console.error("OpenAI error:", lastErrorData);
+    console.error(`${provider} chat error:`, lastErrorData);
     return NextResponse.json(
-      { error: "Failed to communicate with OpenAI" },
+      { error: `Failed to communicate with ${isLocalProvider ? "local chat endpoint" : "OpenAI"}` },
       { status: response ? response.status : 500 }
     );
   }
@@ -243,6 +270,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const mode = body?.mode === "quiz-review" ? "quiz-review" : "chat";
+    const provider = resolveChatProvider(body?.provider);
     const messages = body?.messages;
 
     if (!isChatMessageArray(messages)) {
@@ -256,6 +284,7 @@ export async function POST(req: Request) {
 
     return sendChatCompletion(resolved.messages, {
       maxCompletionTokens: mode === "quiz-review" ? 180 : undefined,
+      provider,
     });
   } catch (error) {
     console.error("Error handling chat request:", error);

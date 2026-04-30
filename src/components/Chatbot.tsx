@@ -12,6 +12,7 @@ type Message = {
 };
 
 type ChatMode = "chat" | "quiz-review";
+type ChatProvider = "openai" | "local";
 
 type ViewportSize = {
   width: number;
@@ -104,6 +105,7 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [input, setInput] = useState("");
+  const [chatProvider, setChatProvider] = useState<ChatProvider>("openai");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoReviewTriggered, setHasAutoReviewTriggered] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
@@ -141,8 +143,8 @@ export default function Chatbot() {
     if (!isOpen || hasAutoReviewTriggered) return;
 
     setHasAutoReviewTriggered(true);
-    void sendRequest({ messages: getInitialMessages(), mode: "quiz-review" });
-  }, [hasAutoReviewTriggered, isOpen]);
+    void sendRequest({ messages: getInitialMessages(), mode: "quiz-review", provider: chatProvider });
+  }, [chatProvider, hasAutoReviewTriggered, isOpen]);
 
   const cancelActiveRequest = () => {
     activeRequestIdRef.current += 1;
@@ -167,12 +169,21 @@ export default function Chatbot() {
     resetConversation();
   };
 
+  const handleProviderChange = (provider: ChatProvider) => {
+    if (provider === chatProvider) return;
+
+    resetConversation();
+    setChatProvider(provider);
+  };
+
   const sendRequest = async ({
     messages: requestMessages,
     mode,
+    provider,
   }: {
     messages: Message[];
     mode: ChatMode;
+    provider: ChatProvider;
   }) => {
     cancelActiveRequest();
 
@@ -190,6 +201,7 @@ export default function Chatbot() {
         signal: controller.signal,
         body: JSON.stringify({
           mode,
+          provider,
           messages: requestMessages.map((message) => ({
             role: message.role,
             content: message.content,
@@ -322,7 +334,7 @@ export default function Chatbot() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
-    await sendRequest({ messages: nextMessages, mode: "chat" });
+    await sendRequest({ messages: nextMessages, mode: "chat", provider: chatProvider });
   };
 
   const panelLimits = getPanelLimits(viewportSize);
@@ -426,6 +438,33 @@ export default function Chatbot() {
             </div>
 
             <div className="chatbot-no-drag border-t border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  API
+                </span>
+                <div
+                  className="inline-flex rounded-full border border-gray-200 bg-gray-100 p-0.5 text-xs font-medium dark:border-gray-700 dark:bg-gray-800"
+                  role="group"
+                  aria-label="Chat API provider"
+                >
+                  {(["openai", "local"] as const).map((provider) => (
+                    <button
+                      key={provider}
+                      type="button"
+                      onClick={() => handleProviderChange(provider)}
+                      disabled={isLoading}
+                      aria-pressed={chatProvider === provider}
+                      className={`rounded-full px-3 py-1 transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        chatProvider === provider
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                      }`}
+                    >
+                      {provider === "openai" ? "OpenAI" : "Local"}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

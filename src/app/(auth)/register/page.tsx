@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Info } from "lucide-react";
+import { PASSWORD_REQUIREMENTS, validatePassword } from "@/lib/account-validation";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,8 +35,9 @@ export default function RegisterPage() {
       setError("Passwords do not match.");
       return;
     }
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const passwordError = validatePassword(form.password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -146,8 +148,11 @@ export default function RegisterPage() {
                   value={form.password}
                   onChange={handleChange}
                   required
-                  placeholder="At least 8 characters"
+                  placeholder="Create a strong password"
                 />
+                <p className="text-xs text-muted-foreground">
+                  {PASSWORD_REQUIREMENTS}
+                </p>
               </div>
 
               <div className="space-y-2">

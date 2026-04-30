@@ -8,12 +8,32 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Check, X, ArrowLeft, FileQuestion } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ArrowLeft, FileQuestion, Upload } from "lucide-react";
 
+type AnswerMode = "SINGLE_SELECT" | "MULTI_SELECT";
 interface Option { id?: string; text: string; isCorrect: boolean }
-interface Question { id: string; text: string; difficultyLevel: string; subtopicId: string; topicId: string; options: Option[]; subtopic: { name: string }; topic: { name: string } }
+interface Question {
+  id: string;
+  title?: string | null;
+  text: string;
+  difficultyLevel: string;
+  answerMode: AnswerMode;
+  points?: number | null;
+  feedbackGeneral?: string | null;
+  feedbackCorrect?: string | null;
+  feedbackIncorrect?: string | null;
+  sourceQuestionId?: string | null;
+  subtopicId: string;
+  topicId: string;
+  options: Option[];
+  subtopic: { name: string };
+  topic: { name: string };
+}
 interface Subtopic { id: string; name: string }
 interface Topic { id: string; name: string; subtopics: Subtopic[] }
+interface ImportSummary { importedCount: number; skippedCount: number; errorCount: number; bankTitle?: string; errors?: { index: number; sourceQuestionId?: string; message: string }[] }
+
+const emptyOptions = () => [{ text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }];
 
 function QuestionsContent() {
   const searchParams = useSearchParams();
@@ -25,10 +45,17 @@ function QuestionsContent() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-  const [form, setForm] = useState({ text: "", topicId: filterTopicId, subtopicId: filterSubtopicId, difficultyLevel: "BEGINNER", options: [{ text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }] });
+  const [form, setForm] = useState({ text: "", topicId: filterTopicId, subtopicId: filterSubtopicId, difficultyLevel: "BEGINNER", answerMode: "SINGLE_SELECT" as AnswerMode, options: emptyOptions() });
+  const [importTopicId, setImportTopicId] = useState(filterTopicId);
+  const [importSubtopicId, setImportSubtopicId] = useState(filterSubtopicId);
+  const [importSourcePath, setImportSourcePath] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [msg, setMsg] = useState("");
 
   const subtopicsForTopic = topics.find((t) => t.id === form.topicId)?.subtopics || [];
+  const subtopicsForImport = topics.find((t) => t.id === importTopicId)?.subtopics || [];
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -41,14 +68,22 @@ function QuestionsContent() {
     ]).then(([qs, ts]) => { setQuestions(qs); setTopics(ts); setLoading(false); });
   }, [filterTopicId, filterSubtopicId]);
 
+  async function refreshQuestions() {
+    const params = new URLSearchParams();
+    if (filterTopicId) params.set("topicId", filterTopicId);
+    if (filterSubtopicId) params.set("subtopicId", filterSubtopicId);
+    const qs = await fetch(`/api/questions?${params}`).then((r) => r.json());
+    setQuestions(qs);
+  }
+
   function startEdit(q: Question) {
     setEditingQuestion(q);
-    setForm({ text: q.text, topicId: q.topicId, subtopicId: q.subtopicId, difficultyLevel: q.difficultyLevel, options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })) });
+    setForm({ text: q.text, topicId: q.topicId, subtopicId: q.subtopicId, difficultyLevel: q.difficultyLevel, answerMode: q.answerMode ?? "SINGLE_SELECT", options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })) });
     setShowForm(true);
   }
 
   function resetForm() {
-    setForm({ text: "", topicId: filterTopicId, subtopicId: filterSubtopicId, difficultyLevel: "BEGINNER", options: [{ text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }] });
+    setForm({ text: "", topicId: filterTopicId, subtopicId: filterSubtopicId, difficultyLevel: "BEGINNER", answerMode: "SINGLE_SELECT", options: emptyOptions() });
     setEditingQuestion(null);
     setShowForm(false);
   }
@@ -58,7 +93,23 @@ function QuestionsContent() {
   }
 
   function markCorrect(index: number) {
-    setForm((prev) => ({ ...prev, options: prev.options.map((o, i) => ({ ...o, isCorrect: i === index })) }));
+    setForm((prev) => ({
+      ...prev,
+      options: prev.options.map((o, i) => ({
+        ...o,
+        isCorrect: prev.answerMode === "MULTI_SELECT" ? (i === index ? !o.isCorrect : o.isCorrect) : i === index,
+      })),
+    }));
+  }
+
+  function setAnswerMode(answerMode: AnswerMode) {
+    setForm((prev) => ({
+      ...prev,
+      answerMode,
+      options: answerMode === "SINGLE_SELECT"
+        ? prev.options.map((option, index) => ({ ...option, isCorrect: index === prev.options.findIndex((o) => o.isCorrect) }))
+        : prev.options,
+    }));
   }
 
   async function saveQuestion() {
@@ -68,7 +119,7 @@ function QuestionsContent() {
     if (!validOptions.some((o) => o.isCorrect)) { setMsg("Mark one option as correct."); return; }
 
     const method = editingQuestion ? "PATCH" : "POST";
-    const body = editingQuestion ? { id: editingQuestion.id, text: form.text, difficultyLevel: form.difficultyLevel, options: validOptions } : { ...form, options: validOptions };
+    const body = editingQuestion ? { id: editingQuestion.id, text: form.text, difficultyLevel: form.difficultyLevel, answerMode: form.answerMode, options: validOptions } : { ...form, options: validOptions };
 
     const res = await fetch("/api/questions", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (res.ok) {
@@ -88,6 +139,40 @@ function QuestionsContent() {
     if (!confirm("Delete this question?")) return;
     await fetch("/api/questions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     setQuestions((prev) => prev.filter((q) => q.id !== id));
+  }
+
+  async function importQuestions() {
+    setMsg("");
+    setImportSummary(null);
+    if (!importTopicId || !importSubtopicId || !importFile) {
+      setMsg("Choose a topic, module, and YAML file to import.");
+      return;
+    }
+
+    const body = new FormData();
+    body.append("topicId", importTopicId);
+    body.append("subtopicId", importSubtopicId);
+    body.append("file", importFile);
+    if (importSourcePath.trim()) body.append("sourcePath", importSourcePath.trim());
+
+    setImportBusy(true);
+    try {
+      const res = await fetch("/api/question-imports", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg(data.error ?? "Import failed.");
+        return;
+      }
+
+      setImportSummary(data);
+      setMsg(`Imported ${data.importedCount} question${data.importedCount === 1 ? "" : "s"}. Skipped ${data.skippedCount}.`);
+      setImportFile(null);
+      await refreshQuestions();
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : "Import failed.");
+    } finally {
+      setImportBusy(false);
+    }
   }
 
   if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
@@ -114,6 +199,61 @@ function QuestionsContent() {
       </div>
 
       {msg && <div className="p-3 rounded-md bg-primary/10 text-primary text-sm">{msg}</div>}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Upload className="w-5 h-5" /> Import Questions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Upload a YAML/YML question bank into a topic module. Imported questions keep their original title, points, feedback, source file, and source question id.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Topic</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={importTopicId} onChange={(e) => { setImportTopicId(e.target.value); setImportSubtopicId(""); }}>
+                <option value="">Select topic</option>
+                {topics.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Module</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={importSubtopicId} onChange={(e) => setImportSubtopicId(e.target.value)} disabled={!importTopicId}>
+                <option value="">Select module</option>
+                {subtopicsForImport.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>YAML File</Label>
+              <Input type="file" accept=".yaml,.yml" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Source folder/path (optional)</Label>
+              <Input value={importSourcePath} onChange={(e) => setImportSourcePath(e.target.value)} placeholder="e.g. data/3_Forces/PHY1-F-IFBDF-091725" />
+            </div>
+          </div>
+          <Button onClick={importQuestions} disabled={importBusy || !importTopicId || !importSubtopicId || !importFile}>
+            {importBusy ? "Importing..." : "Import YAML"}
+          </Button>
+          {importSummary && (
+            <div className="rounded-md border p-3 text-sm space-y-2">
+              <p className="font-medium">{importSummary.bankTitle ?? "Question bank"} import complete</p>
+              <p className="text-muted-foreground">
+                Imported {importSummary.importedCount}, skipped {importSummary.skippedCount}, validation errors {importSummary.errorCount}.
+              </p>
+              {importSummary.errors && importSummary.errors.length > 0 && (
+                <div className="space-y-1 text-destructive">
+                  {importSummary.errors.slice(0, 5).map((error) => (
+                    <p key={`${error.index}-${error.sourceQuestionId ?? "unknown"}`}>Question {error.sourceQuestionId ?? error.index + 1}: {error.message}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Form */}
       {showForm && (
@@ -147,14 +287,21 @@ function QuestionsContent() {
               </select>
             </div>
             <div className="space-y-2">
+              <Label>Answer Type</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.answerMode} onChange={(e) => setAnswerMode(e.target.value as AnswerMode)}>
+                <option value="SINGLE_SELECT">Single correct answer</option>
+                <option value="MULTI_SELECT">Select all that apply</option>
+              </select>
+            </div>
+            <div className="space-y-2">
               <Label>Question Text</Label>
               <Textarea value={form.text} onChange={(e) => setForm((p) => ({ ...p, text: e.target.value }))} rows={3} placeholder="Enter the question..." />
             </div>
             <div className="space-y-2">
-              <Label>Options <span className="text-muted-foreground text-xs">(click radio to mark correct)</span></Label>
+              <Label>Options <span className="text-muted-foreground text-xs">({form.answerMode === "MULTI_SELECT" ? "click boxes to mark all correct answers" : "click radio to mark correct"})</span></Label>
               {form.options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <button type="button" onClick={() => markCorrect(i)} className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${opt.isCorrect ? "bg-green-500 border-green-500" : "border-muted-foreground"}`} />
+                  <button type="button" onClick={() => markCorrect(i)} className={`w-4 h-4 border-2 flex-shrink-0 ${form.answerMode === "MULTI_SELECT" ? "rounded" : "rounded-full"} ${opt.isCorrect ? "bg-green-500 border-green-500" : "border-muted-foreground"}`} />
                   <Input placeholder={`Option ${i + 1}`} value={opt.text} onChange={(e) => setOption(i, "text", e.target.value)} />
                 </div>
               ))}
@@ -188,8 +335,11 @@ function QuestionsContent() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground font-mono">Q{i + 1}</span>
                       <Badge variant="outline" className="text-xs">{q.difficultyLevel}</Badge>
+                      <Badge variant="outline" className="text-xs">{q.answerMode === "MULTI_SELECT" ? "Multi-select" : "Single-select"}</Badge>
                       <Badge variant="secondary" className="text-xs">{q.subtopic?.name}</Badge>
+                      {q.sourceQuestionId && <Badge variant="secondary" className="text-xs">{q.sourceQuestionId}</Badge>}
                     </div>
+                    {q.title && <p className="text-sm font-semibold">{q.title}</p>}
                     <p className="font-medium">{q.text}</p>
                     <div className="space-y-1">
                       {q.options.map((opt) => (
@@ -199,6 +349,12 @@ function QuestionsContent() {
                         </div>
                       ))}
                     </div>
+                    {(q.points || q.feedbackGeneral) && (
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        {q.points ? <p>Points: {q.points}</p> : null}
+                        {q.feedbackGeneral ? <p>Feedback: {q.feedbackGeneral}</p> : null}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     <Button size="sm" variant="ghost" onClick={() => startEdit(q)}><Pencil className="w-3 h-3" /></Button>

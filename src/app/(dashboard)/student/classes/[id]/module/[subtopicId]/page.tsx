@@ -8,13 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CheckCircle, XCircle, RotateCcw, Trophy } from "lucide-react";
 
 interface Option { id: string; text: string; isCorrect?: boolean }
-interface Question { id: string; text: string; options: Option[] }
+interface Question { id: string; text: string; answerMode: "SINGLE_SELECT" | "MULTI_SELECT"; options: Option[] }
 interface QuizResult {
   score: number;
   correct: number;
   total: number;
   questions: Question[];
-  answers: { questionId: string; selectedOptionId: string | null; isCorrect: boolean }[];
+  answers: { questionId: string; selectedOptionId: string | null; selectedOptionIds?: string[]; isCorrect: boolean }[];
 }
 
 type Phase = "loading" | "quiz" | "results" | "error";
@@ -25,7 +25,7 @@ export default function ModulePage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [attemptId, setAttemptId] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +57,22 @@ export default function ModulePage() {
   }
 
   function selectOption(questionId: string, optionId: string) {
-    setSelections((prev) => ({ ...prev, [questionId]: optionId }));
+    setSelections((prev) => ({ ...prev, [questionId]: [optionId] }));
+  }
+
+  function toggleOption(questionId: string, optionId: string) {
+    setSelections((prev) => {
+      const current = prev[questionId] ?? [];
+      const next = current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId];
+      if (next.length === 0) {
+        const rest = { ...prev };
+        delete rest[questionId];
+        return rest;
+      }
+      return { ...prev, [questionId]: next };
+    });
   }
 
   async function submitQuiz() {
@@ -65,7 +80,8 @@ export default function ModulePage() {
     try {
       const answers = questions.map((q) => ({
         questionId: q.id,
-        selectedOptionId: selections[q.id] || null,
+        selectedOptionId: selections[q.id]?.[0] || null,
+        selectedOptionIds: selections[q.id] ?? [],
       }));
       const res = await fetch("/api/quiz", {
         method: "PATCH",
@@ -85,7 +101,7 @@ export default function ModulePage() {
   }
 
   const currentQuestion = questions[currentIndex];
-  const allAnswered = questions.length > 0 && questions.every((q) => selections[q.id]);
+  const allAnswered = questions.length > 0 && questions.every((q) => (selections[q.id]?.length ?? 0) > 0);
 
   if (phase === "loading") {
     return (
@@ -139,7 +155,7 @@ export default function ModulePage() {
           <h2 className="text-lg font-semibold">Review</h2>
           {result.questions.map((q, i) => {
             const answer = result.answers.find((a) => a.questionId === q.id);
-            const selected = answer?.selectedOptionId;
+            const selectedIds = new Set(answer?.selectedOptionIds ?? (answer?.selectedOptionId ? [answer.selectedOptionId] : []));
             const correct = answer?.isCorrect;
 
             return (
@@ -151,7 +167,7 @@ export default function ModulePage() {
                   </div>
                   <div className="space-y-1 ml-6">
                     {q.options.map((opt) => {
-                      const isSelected = opt.id === selected;
+                      const isSelected = selectedIds.has(opt.id);
                       const isCorrect = opt.isCorrect;
                       return (
                         <div key={opt.id} className={`text-sm px-2 py-1 rounded flex items-center gap-2 ${isCorrect ? "bg-green-50 text-green-700" : isSelected && !isCorrect ? "bg-red-50 text-red-700" : "text-muted-foreground"}`}>
@@ -192,7 +208,7 @@ export default function ModulePage() {
           Question {currentIndex + 1} of {questions.length}
         </p>
         <p className="text-sm text-muted-foreground">
-          {Object.keys(selections).length} answered
+          {questions.filter((q) => (selections[q.id]?.length ?? 0) > 0).length} answered
         </p>
       </div>
       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -209,19 +225,28 @@ export default function ModulePage() {
             <CardTitle className="text-lg leading-relaxed">{currentQuestion.text}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            {currentQuestion.answerMode === "MULTI_SELECT" && (
+              <p className="text-xs text-muted-foreground">Select all that apply.</p>
+            )}
             {currentQuestion.options.map((opt) => {
-              const isSelected = selections[currentQuestion.id] === opt.id;
+              const selectedIds = selections[currentQuestion.id] ?? [];
+              const isSelected = selectedIds.includes(opt.id);
               return (
                 <button
                   key={opt.id}
-                  onClick={() => selectOption(currentQuestion.id, opt.id)}
+                  onClick={() => currentQuestion.answerMode === "MULTI_SELECT" ? toggleOption(currentQuestion.id, opt.id) : selectOption(currentQuestion.id, opt.id)}
                   className={`w-full text-left p-3 rounded-lg border transition-all text-sm ${
                     isSelected
                       ? "border-primary bg-primary/10 text-primary font-medium"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   }`}
                 >
-                  {opt.text}
+                  <span className="flex items-start gap-2">
+                    <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border ${currentQuestion.answerMode === "MULTI_SELECT" ? "rounded" : "rounded-full"} ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}>
+                      {isSelected ? "✓" : ""}
+                    </span>
+                    <span>{opt.text}</span>
+                  </span>
                 </button>
               );
             })}
@@ -240,7 +265,7 @@ export default function ModulePage() {
               className={`w-8 h-8 rounded-full text-xs font-medium transition-colors shrink-0 ${
                 i === currentIndex
                   ? "bg-primary text-primary-foreground"
-                  : selections[q.id]
+                  : (selections[q.id]?.length ?? 0) > 0
                   ? "bg-green-100 text-green-700"
                   : "bg-muted text-muted-foreground"
               }`}

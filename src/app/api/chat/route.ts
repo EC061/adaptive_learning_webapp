@@ -193,6 +193,7 @@ async function sendChatCompletion(
     stream: boolean;
     stream_options?: { include_usage: true };
     max_completion_tokens?: number;
+    max_tokens?: number;
     service_tier?: string;
   } = {
     model,
@@ -207,7 +208,11 @@ async function sendChatCompletion(
   }
 
   if (options?.maxCompletionTokens) {
-    payload.max_completion_tokens = options.maxCompletionTokens;
+    if (isLocalProvider) {
+      payload.max_tokens = options.maxCompletionTokens;
+    } else {
+      payload.max_completion_tokens = options.maxCompletionTokens;
+    }
   }
 
   let response: Response | null = null;

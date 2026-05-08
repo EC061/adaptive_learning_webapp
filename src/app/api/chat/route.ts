@@ -316,7 +316,7 @@ export async function POST(req: Request) {
     }
 
     return sendChatCompletion(resolved.messages, {
-      maxCompletionTokens: mode === "quiz-review" ? 180 : undefined,
+      maxCompletionTokens: mode === "quiz-review" ? 500 : undefined,
       model,
       provider,
     });

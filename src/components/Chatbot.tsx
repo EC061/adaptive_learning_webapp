@@ -46,6 +46,13 @@ function getInitialMessages(): Message[] {
   return [{ role: "assistant", content: INITIAL_ASSISTANT_MESSAGE }];
 }
 
+function getApiMessages(messages: Message[]) {
+  return messages.filter(
+    (message, index) =>
+      !(index === 0 && message.role === "assistant" && message.content === INITIAL_ASSISTANT_MESSAGE)
+  );
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -272,7 +279,7 @@ export default function Chatbot() {
           mode,
           model,
           provider,
-          messages: requestMessages.map((message) => ({
+          messages: getApiMessages(requestMessages).map((message) => ({
             role: message.role,
             content: message.content,
           })),
@@ -296,6 +303,7 @@ export default function Chatbot() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = "";
+      let sawReasoningContent = false;
 
       const startTime = Date.now();
       let firstTokenTime: number | null = null;
@@ -325,12 +333,35 @@ export default function Chatbot() {
                   completionTokens = data.usage.completion_tokens;
                 }
 
-                if (data.choices && data.choices.length > 0 && data.choices[0].delta?.content) {
+                const delta = data.choices?.[0]?.delta;
+
+                if (delta?.reasoning_content && !assistantMessage) {
+                  sawReasoningContent = true;
+                  setMessages((prev) => {
+                    if (activeRequestIdRef.current !== requestId || prev.length === 0) {
+                      return prev;
+                    }
+
+                    const nextMessages = [...prev];
+                    const lastMessage = nextMessages[nextMessages.length - 1];
+                    if (lastMessage.content) {
+                      return prev;
+                    }
+
+                    nextMessages[nextMessages.length - 1] = {
+                      role: "assistant",
+                      content: "*Thinking...*",
+                    };
+                    return nextMessages;
+                  });
+                }
+
+                if (delta?.content) {
                   if (!firstTokenTime) {
                     firstTokenTime = Date.now();
                   }
 
-                  assistantMessage += data.choices[0].delta.content;
+                  assistantMessage += delta.content;
                   setMessages((prev) => {
                     if (activeRequestIdRef.current !== requestId || prev.length === 0) {
                       return prev;
@@ -350,6 +381,23 @@ export default function Chatbot() {
             }
           }
         }
+      }
+
+      if (!assistantMessage) {
+        setMessages((prev) => {
+          if (activeRequestIdRef.current !== requestId || prev.length === 0) {
+            return prev;
+          }
+
+          const nextMessages = [...prev];
+          nextMessages[nextMessages.length - 1] = {
+            role: "assistant",
+            content: sawReasoningContent
+              ? "The model only returned reasoning tokens and no final answer. Try increasing the token limit or disabling thinking for this local model."
+              : "The model returned an empty response.",
+          };
+          return nextMessages;
+        });
       }
 
       const endTime = Date.now();

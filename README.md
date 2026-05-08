@@ -63,7 +63,6 @@ OPENAI_SERVICE_TIER="flex"
 OPENAI_MODEL="gpt-5.1"
 LOCAL_API_ENDPOINT=""
 LOCAL_API_TOKEN=""
-LOCAL_MODEL="local"
 AWS_REGION="us-east-1"
 AWS_S3_BUCKET="your-bucket"
 ```
@@ -78,9 +77,8 @@ AWS_S3_BUCKET="your-bucket"
 | `OPENAI_API_KEY` | OpenAI API key |
 | `OPENAI_SERVICE_TIER` | OpenAI service tier |
 | `OPENAI_MODEL` | OpenAI model name |
-| `LOCAL_API_ENDPOINT` | Optional OpenAI-compatible local chat endpoint |
+| `LOCAL_API_ENDPOINT` | Optional OpenAI-compatible local chat endpoint; available local models are discovered from its `/models` endpoint |
 | `LOCAL_API_TOKEN` | Optional bearer token for local chat endpoint |
-| `LOCAL_MODEL` | Local chat model name (defaults to `local`) |
 | `LEARNING_MATERIAL_MAX_BYTES` | Max upload size (default 52428800) |
 | `AWS_REGION`, `AWS_S3_BUCKET` | Required for learning material uploads (S3) |
 | `AWS_S3_ENDPOINT` | Optional: MinIO / LocalStack (path-style S3) |

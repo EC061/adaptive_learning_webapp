@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  cleanEnvValue,
+  fetchLocalEndpointWithRetry,
+  resolveLocalChatEndpoint,
+} from "./local";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -10,19 +15,8 @@ type ChatMessage = {
 type ChatMode = "chat" | "quiz-review";
 type ChatProvider = "openai" | "local";
 
-function cleanEnvValue(value: string | undefined, fallback = "") {
-  return (value || fallback).replace(/^["']|["']$/g, "").trim();
-}
-
 function resolveChatProvider(value: unknown): ChatProvider {
   return value === "local" ? "local" : "openai";
-}
-
-function resolveLocalChatEndpoint(endpoint: string) {
-  const normalizedEndpoint = endpoint.replace(/\/+$/, "");
-  return normalizedEndpoint.endsWith("/chat/completions")
-    ? normalizedEndpoint
-    : `${normalizedEndpoint}/chat/completions`;
 }
 
 function isChatMessageArray(value: unknown): value is ChatMessage[] {
@@ -160,6 +154,7 @@ async function sendChatCompletion(
   messages: ChatMessage[],
   options?: {
     maxCompletionTokens?: number;
+    model?: string;
     provider?: ChatProvider;
   }
 ) {
@@ -169,7 +164,7 @@ async function sendChatCompletion(
     ? cleanEnvValue(process.env.LOCAL_API_TOKEN)
     : cleanEnvValue(process.env.OPENAI_API_KEY);
   const model = isLocalProvider
-    ? cleanEnvValue(process.env.LOCAL_MODEL, "local")
+    ? options?.model?.trim() ?? ""
     : cleanEnvValue(process.env.OPENAI_MODEL, "gpt-5.4");
   const serviceTier = cleanEnvValue(process.env.OPENAI_SERVICE_TIER, "flex");
   const localEndpoint = cleanEnvValue(process.env.LOCAL_API_ENDPOINT);
@@ -185,6 +180,10 @@ async function sendChatCompletion(
   if (isLocalProvider && !endpoint) {
     console.error("LOCAL_API_ENDPOINT is not set");
     return NextResponse.json({ error: "Local chat integration is currently unavailable" }, { status: 503 });
+  }
+
+  if (isLocalProvider && !model) {
+    return NextResponse.json({ error: "A local model selection is required" }, { status: 400 });
   }
 
   const payload: {
@@ -217,35 +216,63 @@ async function sendChatCompletion(
   let baseDelay = 1000;
   let lastErrorData: unknown = null;
 
-  while (attempt <= maxRetries) {
+  const requestInit = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  };
+
+  if (isLocalProvider) {
     try {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-        },
-        body: JSON.stringify(payload),
+      response = await fetchLocalEndpointWithRetry(endpoint, {
+        ...requestInit,
+        retryLabel: "local chat request",
       });
-
-      if (response.ok) {
-        break;
-      }
-
-      lastErrorData = await response.json();
-
-      if (response.status !== 429 && response.status < 500) {
-        break;
-      }
     } catch {
       lastErrorData = { error: { message: "Network or fetch error" } };
     }
+  } else {
+    while (attempt <= maxRetries) {
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
 
-    attempt++;
-    if (attempt <= maxRetries) {
-      console.warn(`${provider} chat request failed, retrying in ${baseDelay}ms... (Attempt ${attempt}/${maxRetries})`);
-      await new Promise((resolve) => setTimeout(resolve, baseDelay));
-      baseDelay *= 2;
+        if (response.ok) {
+          break;
+        }
+
+        lastErrorData = await response.json();
+
+        if (response.status !== 429 && response.status < 500) {
+          break;
+        }
+      } catch {
+        lastErrorData = { error: { message: "Network or fetch error" } };
+      }
+
+      attempt++;
+      if (attempt <= maxRetries) {
+        console.warn(`${provider} chat request failed, retrying in ${baseDelay}ms... (Attempt ${attempt}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, baseDelay));
+        baseDelay *= 2;
+      }
+    }
+  }
+
+  if (isLocalProvider && response && !response.ok) {
+    try {
+      lastErrorData = await response.json();
+    } catch {
+      lastErrorData = { error: { message: "Unknown local chat error" } };
     }
   }
 
@@ -271,6 +298,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const mode = body?.mode === "quiz-review" ? "quiz-review" : "chat";
     const provider = resolveChatProvider(body?.provider);
+    const model = typeof body?.model === "string" ? body.model.trim() : "";
     const messages = body?.messages;
 
     if (!isChatMessageArray(messages)) {
@@ -284,6 +312,7 @@ export async function POST(req: Request) {
 
     return sendChatCompletion(resolved.messages, {
       maxCompletionTokens: mode === "quiz-review" ? 180 : undefined,
+      model,
       provider,
     });
   } catch (error) {

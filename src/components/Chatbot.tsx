@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Eraser, MessageCircle, Send, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Rnd } from "react-rnd";
 import remarkGfm from "remark-gfm";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Message = {
   role: "user" | "assistant";
@@ -106,6 +113,10 @@ export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [input, setInput] = useState("");
   const [chatProvider, setChatProvider] = useState<ChatProvider>("openai");
+  const [localModels, setLocalModels] = useState<string[]>([]);
+  const [selectedLocalModel, setSelectedLocalModel] = useState("");
+  const [isLoadingLocalModels, setIsLoadingLocalModels] = useState(false);
+  const [localModelsError, setLocalModelsError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoReviewTriggered, setHasAutoReviewTriggered] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
@@ -141,10 +152,66 @@ export default function Chatbot() {
 
   useEffect(() => {
     if (!isOpen || hasAutoReviewTriggered) return;
+    if (chatProvider === "local" && !selectedLocalModel) return;
 
     setHasAutoReviewTriggered(true);
-    void sendRequest({ messages: getInitialMessages(), mode: "quiz-review", provider: chatProvider });
-  }, [chatProvider, hasAutoReviewTriggered, isOpen]);
+    void sendRequest({
+      messages: getInitialMessages(),
+      mode: "quiz-review",
+      model: chatProvider === "local" ? selectedLocalModel : undefined,
+      provider: chatProvider,
+    });
+  }, [chatProvider, hasAutoReviewTriggered, isOpen, selectedLocalModel]);
+
+  const loadLocalModels = useCallback(async (signal?: AbortSignal) => {
+    setIsLoadingLocalModels(true);
+    setLocalModelsError("");
+
+    try {
+      const response = await fetch("/api/chat/models", { signal });
+      const data: unknown = await response.json();
+
+      if (!response.ok) {
+        const message =
+          data && typeof data === "object" && typeof (data as { error?: unknown }).error === "string"
+            ? (data as { error: string }).error
+            : "Failed to load local models";
+        throw new Error(message);
+      }
+
+      const models =
+        data && typeof data === "object" && Array.isArray((data as { models?: unknown }).models)
+          ? (data as { models: unknown[] }).models.filter((model): model is string => typeof model === "string")
+          : [];
+
+      setLocalModels(models);
+      setSelectedLocalModel((currentModel) => (models.includes(currentModel) ? currentModel : ""));
+      if (models.length === 0) {
+        setLocalModelsError("No local models were returned by the endpoint.");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setLocalModels([]);
+      setSelectedLocalModel("");
+      setLocalModelsError(error instanceof Error ? error.message : "Failed to load local models");
+    } finally {
+      setIsLoadingLocalModels(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (chatProvider !== "local") return;
+
+    const controller = new AbortController();
+    void loadLocalModels(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [chatProvider, loadLocalModels]);
 
   const cancelActiveRequest = () => {
     activeRequestIdRef.current += 1;
@@ -179,10 +246,12 @@ export default function Chatbot() {
   const sendRequest = async ({
     messages: requestMessages,
     mode,
+    model,
     provider,
   }: {
     messages: Message[];
     mode: ChatMode;
+    model?: string;
     provider: ChatProvider;
   }) => {
     cancelActiveRequest();
@@ -201,6 +270,7 @@ export default function Chatbot() {
         signal: controller.signal,
         body: JSON.stringify({
           mode,
+          model,
           provider,
           messages: requestMessages.map((message) => ({
             role: message.role,
@@ -328,16 +398,23 @@ export default function Chatbot() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    if (chatProvider === "local" && !selectedLocalModel) return;
 
     const userMessage: Message = { role: "user", content: input };
     const nextMessages = [...messages, userMessage];
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
-    await sendRequest({ messages: nextMessages, mode: "chat", provider: chatProvider });
+    await sendRequest({
+      messages: nextMessages,
+      mode: "chat",
+      model: chatProvider === "local" ? selectedLocalModel : undefined,
+      provider: chatProvider,
+    });
   };
 
   const panelLimits = getPanelLimits(viewportSize);
+  const isLocalModelMissing = chatProvider === "local" && !selectedLocalModel;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
@@ -465,6 +542,42 @@ export default function Chatbot() {
                   ))}
                 </div>
               </div>
+              {chatProvider === "local" && (
+                <div className="mb-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/60">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Model
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void loadLocalModels()}
+                      disabled={isLoadingLocalModels || isLoading}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {isLoadingLocalModels ? "Loading..." : "Refresh"}
+                    </button>
+                  </div>
+                  <Select
+                    value={selectedLocalModel}
+                    onValueChange={setSelectedLocalModel}
+                    disabled={isLoadingLocalModels || isLoading || localModels.length === 0}
+                  >
+                    <SelectTrigger className="h-9 border-gray-300 bg-white text-sm dark:border-gray-700 dark:bg-gray-900">
+                      <SelectValue placeholder={isLoadingLocalModels ? "Loading models..." : "Select a local model"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {localModels.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {localModelsError && (
+                    <p className="text-xs text-red-600 dark:text-red-400">{localModelsError}</p>
+                  )}
+                </div>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -482,7 +595,7 @@ export default function Chatbot() {
                 />
                 <button
                   type="submit"
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input.trim() || isLoading || isLocalModelMissing}
                   className="rounded-full bg-blue-600 p-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Send message"
                 >

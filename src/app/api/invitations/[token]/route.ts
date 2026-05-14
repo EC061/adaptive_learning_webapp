@@ -31,6 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 }
 
 // POST: use invitation (enroll current user, or create account + enroll)
+// Now requires orgDefinedId (81 number) verification against the class roster.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
     const { token } = await params;
@@ -49,8 +50,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       return NextResponse.json({ error: "Invitation limit reached." }, { status: 410 });
     }
 
+    const body = await req.json();
+    const rawOrgId = (body.orgDefinedId || "").replace(/^#/, "").trim();
+
+    if (!rawOrgId) {
+      return NextResponse.json({ error: "81 number is required." }, { status: 400 });
+    }
+
+    // Verify the 81 number against the class roster
+    const rosterEntry = await prisma.classStudentList.findUnique({
+      where: {
+        classId_orgDefinedId: {
+          classId: invitation.classId,
+          orgDefinedId: rawOrgId,
+        },
+      },
+    });
+
+    if (!rosterEntry) {
+      return NextResponse.json({ error: "81 not found for class retry again" }, { status: 404 });
+    }
+
+    if (rosterEntry.isRegistered) {
+      return NextResponse.json({ error: "This 81 number is already registered." }, { status: 409 });
+    }
+
     const session = await auth();
     let studentId: string;
+    let firstName = rosterEntry.firstName;
+    let lastName = rosterEntry.lastName;
 
     if (session?.user) {
       // Already logged in — enroll this user
@@ -61,11 +89,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       if (!student) return NextResponse.json({ error: "Student record not found." }, { status: 404 });
       studentId = student.id;
     } else {
-      // New signup flow
-      const body = await req.json();
-      const { firstName, lastName, username, email, password } = body;
-      if (!firstName?.trim() || !lastName?.trim() || !username?.trim() || !email?.trim() || !password) {
-        return NextResponse.json({ error: "All fields required for signup." }, { status: 400 });
+      // New signup flow — requires username, email, password
+      const { username, email, password } = body;
+      if (!username?.trim() || !email?.trim() || !password) {
+        return NextResponse.json({ error: "Username, email, and password are required." }, { status: 400 });
       }
 
       const passwordError = validatePassword(password);
@@ -93,8 +120,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
           email: normalizedEmail,
           username: normalizedUsername,
           hashedPassword,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
+          firstName,
+          lastName,
           role: "STUDENT",
           student: { create: {} },
         },
@@ -103,20 +130,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       studentId = user.student!.id;
     }
 
-    // Enroll (upsert to avoid duplicate)
-    await prisma.classEnrollment.upsert({
-      where: { classId_studentId: { classId: invitation.classId, studentId } },
-      update: {},
-      create: { classId: invitation.classId, studentId },
-    });
+    // Enroll + mark roster entry as registered + increment invite use count
+    await prisma.$transaction([
+      prisma.classEnrollment.upsert({
+        where: { classId_studentId: { classId: invitation.classId, studentId } },
+        update: {},
+        create: { classId: invitation.classId, studentId },
+      }),
+      prisma.classStudentList.update({
+        where: { id: rosterEntry.id },
+        data: { isRegistered: true },
+      }),
+      prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { usedCount: { increment: 1 } },
+      }),
+    ]);
 
-    // Increment use count
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { usedCount: { increment: 1 } },
+    return NextResponse.json({
+      success: true,
+      classId: invitation.classId,
+      firstName,
+      lastName,
     });
-
-    return NextResponse.json({ success: true, classId: invitation.classId });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       const target = Array.isArray(err.meta?.target) ? err.meta.target.join(", ") : "";
@@ -128,3 +164,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
+

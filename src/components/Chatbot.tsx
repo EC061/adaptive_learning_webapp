@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Eraser, MessageCircle, Send, X } from "lucide-react";
+import { Bot, Eraser, MessageCircle, RefreshCw, Send, Square, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Rnd } from "react-rnd";
 import remarkGfm from "remark-gfm";
@@ -55,6 +55,14 @@ function getApiMessages(messages: Message[]) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function formatModelName(model: string) {
+  return model
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function getViewportSize(): ViewportSize {
@@ -248,6 +256,12 @@ export default function Chatbot() {
 
     resetConversation();
     setChatProvider(provider);
+  };
+
+  const handleLocalModelChange = (model: string) => {
+    if (model === selectedLocalModel || isLoading) return;
+
+    setSelectedLocalModel(model);
   };
 
   const sendRequest = async ({
@@ -505,7 +519,8 @@ export default function Chatbot() {
               <div className="chatbot-no-drag flex items-center gap-2">
                 <button
                   onClick={handleClearContext}
-                  className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-white/10"
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-1 rounded-md border border-white/30 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Clear context"
                   type="button"
                 >
@@ -591,32 +606,50 @@ export default function Chatbot() {
                 </div>
               </div>
               {chatProvider === "local" && (
-                <div className="mb-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/60">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Model
-                    </span>
+                <div className="mb-3 overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 shadow-sm dark:border-blue-900/50 dark:from-blue-950/30 dark:via-gray-900 dark:to-indigo-950/30">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <span className="mt-0.5 rounded-lg bg-blue-600/10 p-1.5 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300">
+                        <Bot size={15} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                          Local model
+                        </p>
+                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                          {selectedLocalModel
+                            ? formatModelName(selectedLocalModel)
+                            : isLoadingLocalModels
+                              ? "Loading available models..."
+                              : "Choose a model to start"}
+                        </p>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => void loadLocalModels()}
                       disabled={isLoadingLocalModels || isLoading}
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400 dark:hover:text-blue-300"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-blue-200 bg-white/80 px-2 py-1 text-xs font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-900/70 dark:bg-gray-900/80 dark:text-blue-300 dark:hover:bg-blue-950/40"
                     >
-                      {isLoadingLocalModels ? "Loading..." : "Refresh"}
+                      <RefreshCw size={12} className={isLoadingLocalModels ? "animate-spin" : ""} />
+                      {isLoadingLocalModels ? "Loading" : "Refresh"}
                     </button>
                   </div>
                   <Select
                     value={selectedLocalModel}
-                    onValueChange={setSelectedLocalModel}
-                    disabled={isLoadingLocalModels || isLoading || localModels.length === 0}
+                    onValueChange={handleLocalModelChange}
+                    disabled={isLoading || isLoadingLocalModels || localModels.length === 0}
                   >
-                    <SelectTrigger className="h-9 border-gray-300 bg-white text-sm dark:border-gray-700 dark:bg-gray-900">
+                    <SelectTrigger className="h-10 rounded-xl border-blue-200 bg-white/95 text-sm shadow-sm transition-colors hover:border-blue-300 dark:border-blue-900/70 dark:bg-gray-950/80 dark:hover:border-blue-700">
                       <SelectValue placeholder={isLoadingLocalModels ? "Loading models..." : "Select a local model"} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="item-aligned" className="border-blue-100 dark:border-blue-900/70">
                       {localModels.map((model) => (
                         <SelectItem key={model} value={model}>
-                          {model}
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate font-medium">{formatModelName(model)}</span>
+                            <span className="truncate text-xs text-gray-500 dark:text-gray-400">{model}</span>
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -642,12 +675,17 @@ export default function Chatbot() {
                   disabled={isLoading}
                 />
                 <button
-                  type="submit"
-                  disabled={!input.trim() || isLoading || isLocalModelMissing}
-                  className="rounded-full bg-blue-600 p-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label="Send message"
+                  type={isLoading ? "button" : "submit"}
+                  onClick={isLoading ? cancelActiveRequest : undefined}
+                  disabled={!isLoading && (!input.trim() || isLocalModelMissing)}
+                  className={`rounded-full p-2 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isLoading
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                  aria-label={isLoading ? "Stop response" : "Send message"}
                 >
-                  <Send size={18} />
+                  {isLoading ? <Square size={18} fill="currentColor" /> : <Send size={18} />}
                 </button>
               </form>
             </div>

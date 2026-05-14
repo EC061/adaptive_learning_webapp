@@ -83,6 +83,22 @@ model Class {
   classTopics    ClassTopic[]
   moduleProgress ModuleProgress[]
   quizAttempts   QuizAttempt[]
+  studentList    ClassStudentList[]
+}
+
+model ClassStudentList {
+  id           String   @id @default(cuid())
+  classId      String
+  orgDefinedId String   // stored WITHOUT "#" prefix, e.g. "811947904"
+  firstName    String
+  lastName     String
+  isRegistered Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, orgDefinedId])
+  @@index([orgDefinedId])
 }
 
 model ClassEnrollment {

@@ -69,7 +69,7 @@ export default function RegisterPage() {
         <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-400/20 text-sm text-blue-200">
           <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-400" />
           <span>
-            <strong>Students:</strong> You cannot sign up here. Ask your teacher for an invitation link — it will create your account and enroll you in the class automatically.
+            <strong>Students:</strong> You cannot sign up here. Ask your teacher for an invitation link — you&apos;ll need your 81 number to verify your identity and create your account.
           </span>
         </div>
 

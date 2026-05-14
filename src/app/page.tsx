@@ -7,6 +7,7 @@ export default async function HomePage() {
 
   if (session?.user) {
     if (session.user.role === "TEACHER") redirect("/teacher");
+    else if (session.user.role === "ADMIN") redirect("/admin");
     else redirect("/student");
   }
 

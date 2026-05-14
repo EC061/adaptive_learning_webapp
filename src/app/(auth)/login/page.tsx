@@ -39,6 +39,8 @@ function LoginForm() {
           router.push(callbackUrl);
         } else if (role === "TEACHER") {
           router.push("/teacher");
+        } else if (role === "ADMIN") {
+          router.push("/admin");
         } else {
           router.push("/student");
         }

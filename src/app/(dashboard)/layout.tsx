@@ -22,7 +22,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     redirect("/login");
   }
 
-  const role = session.user.role as "TEACHER" | "STUDENT";
+  const role = session.user.role as "TEACHER" | "STUDENT" | "ADMIN";
 
   return (
     <div className="flex min-h-screen bg-background">

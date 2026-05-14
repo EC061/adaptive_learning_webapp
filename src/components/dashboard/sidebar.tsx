@@ -22,7 +22,7 @@ interface NavItem {
 }
 
 interface SidebarProps {
-  role: "TEACHER" | "STUDENT";
+  role: "TEACHER" | "STUDENT" | "ADMIN";
   firstName: string;
   lastName: string;
   onSignOut: () => void;
@@ -37,7 +37,7 @@ function SidebarContent({
   onSignOut,
   onNavigate,
 }: {
-  role: "TEACHER" | "STUDENT";
+  role: "TEACHER" | "STUDENT" | "ADMIN";
   firstName: string;
   lastName: string;
   onSignOut: () => void;
@@ -58,7 +58,12 @@ function SidebarContent({
     { href: "/student/classes", label: "My Classes", icon: <GraduationCap className="w-4 h-4" /> },
   ];
 
-  const navItems = role === "TEACHER" ? teacherNav : studentNav;
+  const adminNav: NavItem[] = [
+    { href: "/admin", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { href: "/admin/users", label: "Users", icon: <Users className="w-4 h-4" /> },
+  ];
+
+  const navItems = role === "ADMIN" ? adminNav : role === "TEACHER" ? teacherNav : studentNav;
 
   return (
     <div className="flex flex-col h-full">
@@ -79,6 +84,7 @@ function SidebarContent({
             pathname === item.href ||
             (item.href !== "/teacher" &&
               item.href !== "/student" &&
+              item.href !== "/admin" &&
               pathname.startsWith(item.href));
           return (
             <Link

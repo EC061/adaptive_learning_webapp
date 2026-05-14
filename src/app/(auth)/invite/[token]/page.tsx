@@ -264,9 +264,9 @@ function InviteContent() {
                         {joining ? "Joining..." : `Join ${info?.className}`}
                       </Button>
                     </div>
-                  ) : status === "authenticated" && session?.user?.role === "TEACHER" ? (
+                  ) : status === "authenticated" && (session?.user?.role === "TEACHER" || session?.user?.role === "ADMIN") ? (
                     <div className="text-center py-4 text-muted-foreground text-sm">
-                      Teachers cannot join student classes. <Link href="/teacher" className="text-primary hover:underline">Go to dashboard</Link>
+                      {session?.user?.role === "TEACHER" ? "Teachers" : "Admins"} cannot join student classes. <Link href={session?.user?.role === "TEACHER" ? "/teacher" : "/admin"} className="text-primary hover:underline">Go to dashboard</Link>
                     </div>
                   ) : (
                     <div className="space-y-4">

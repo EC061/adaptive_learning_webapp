@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// GET: Return all ClassStudentList entries for this class (teacher only)
+// GET: Return all ClassStudentList entries for this class with enrollment status (teacher only)
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -27,7 +27,31 @@ export async function GET(
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
-  return NextResponse.json(students);
+  // Cross-reference with enrollments to get enrollment status
+  const enrollments = await prisma.classEnrollment.findMany({
+    where: { classId: id },
+    include: { student: { include: { user: true } } },
+  });
+
+  // Build a lookup map: orgDefinedId -> enrollment info
+  // Match roster entries to enrollments by looking up users who registered with matching names
+  const enrollmentByName = new Map<string, { enrolledAt: Date }>();
+  for (const e of enrollments) {
+    const key = `${e.student.user.firstName.toLowerCase()}|${e.student.user.lastName.toLowerCase()}`;
+    enrollmentByName.set(key, { enrolledAt: e.joinedAt });
+  }
+
+  const studentsWithStatus = students.map((s) => {
+    const key = `${s.firstName.toLowerCase()}|${s.lastName.toLowerCase()}`;
+    const enrollment = enrollmentByName.get(key);
+    return {
+      ...s,
+      isEnrolled: !!enrollment,
+      enrolledAt: enrollment?.enrolledAt ?? null,
+    };
+  });
+
+  return NextResponse.json(studentsWithStatus);
 }
 
 // POST: Manually add a student to the class roster (teacher only)

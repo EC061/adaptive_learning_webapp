@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, BookOpen, Link2, ArrowLeft, UserCheck } from "lucide-react";
+import { Users, BookOpen, Link2, ArrowLeft, UserCheck, ClipboardList } from "lucide-react";
 
 export default async function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -20,7 +20,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       enrollments: { include: { student: { include: { user: true } } }, orderBy: { joinedAt: "desc" } },
       classTopics: { include: { topic: { include: { subtopics: true } } }, orderBy: { topic: { order: "asc" } } },
       invitations: { where: { active: true }, orderBy: { createdAt: "desc" }, take: 3 },
-      _count: { select: { enrollments: true } },
+      studentList: { orderBy: [{ lastName: "asc" }, { firstName: "asc" }] },
+      _count: { select: { enrollments: true, studentList: true } },
     },
   });
 
@@ -30,6 +31,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   const host = headersList.get("x-forwarded-host") || headersList.get("host") || "localhost:3000";
   const proto = headersList.get("x-forwarded-proto") || "http";
   const appUrl = `${proto}://${host}`;
+
+  // Build enrollment lookup to show enrollment status in preview
+  const enrolledNames = new Set(
+    cls.enrollments.map(
+      (e) => `${e.student.user.firstName.toLowerCase()}|${e.student.user.lastName.toLowerCase()}`
+    )
+  );
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -96,26 +104,47 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2 text-base"><Users className="w-4 h-4" /> Students</CardTitle>
-              <Badge variant="secondary">{cls._count.enrollments}</Badge>
+              <CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="w-4 h-4" /> Student Roster</CardTitle>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/teacher/classes/${cls.id}/students`}>Manage Roster</Link>
+              </Button>
             </CardHeader>
             <CardContent>
-              {cls.enrollments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No students yet.</p>
+              <div className="flex gap-3 mb-3 text-xs">
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <Users className="w-3 h-3" /> {cls._count.studentList} in roster
+                </span>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <UserCheck className="w-3 h-3" /> {cls._count.enrollments} enrolled
+                </span>
+              </div>
+              {cls.studentList.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No students in roster yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {cls.enrollments.slice(0, 5).map((e) => (
-                    <div key={e.id} className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                        {e.student.user.firstName[0]}{e.student.user.lastName[0]}
+                  {cls.studentList.slice(0, 5).map((s) => {
+                    const nameKey = `${s.firstName.toLowerCase()}|${s.lastName.toLowerCase()}`;
+                    const isEnrolled = enrolledNames.has(nameKey);
+                    return (
+                      <div key={s.id} className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                          {s.firstName[0]}{s.lastName[0]}
+                        </div>
+                        <span className="text-sm flex-1">{s.firstName} {s.lastName}</span>
+                        {isEnrolled ? (
+                          <Badge variant="success" className="text-[10px] px-1.5 py-0">Enrolled</Badge>
+                        ) : s.isRegistered ? (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Registered</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600">Pending</Badge>
+                        )}
                       </div>
-                      <span className="text-sm">{e.student.user.firstName} {e.student.user.lastName}</span>
-                    </div>
-                  ))}
-                  {cls.enrollments.length > 5 && (
+                    );
+                  })}
+                  {cls.studentList.length > 5 && (
                     <Button variant="ghost" size="sm" className="w-full" asChild>
                       <Link href={`/teacher/classes/${cls.id}/students`}>
-                        <UserCheck className="w-3 h-3" /> View all {cls.enrollments.length} students
+                        <UserCheck className="w-3 h-3" /> View all {cls.studentList.length} students
                       </Link>
                     </Button>
                   )}

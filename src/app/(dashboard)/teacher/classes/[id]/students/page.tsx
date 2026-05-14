@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,8 @@ import {
   Loader2,
   CheckCircle,
   Clock,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 
 interface StudentEntry {
@@ -30,6 +33,8 @@ interface StudentEntry {
   firstName: string;
   lastName: string;
   isRegistered: boolean;
+  isEnrolled: boolean;
+  enrolledAt: string | null;
   createdAt: string;
 }
 
@@ -39,6 +44,7 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [className, setClassName] = useState("");
+  const [filter, setFilter] = useState<"all" | "enrolled" | "not_enrolled" | "not_registered">("all");
 
   // Add dialog state
   const [addOpen, setAddOpen] = useState(false);
@@ -97,7 +103,7 @@ export default function StudentsPage() {
       if (!res.ok) {
         setAddError(data.error || "Failed to add student.");
       } else {
-        setStudents((prev) => [...prev, data].sort((a, b) =>
+        setStudents((prev) => [...prev, { ...data, isEnrolled: false, enrolledAt: null }].sort((a, b) =>
           a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)
         ));
         setAddForm({ orgDefinedId: "", firstName: "", lastName: "" });
@@ -128,7 +134,7 @@ export default function StudentsPage() {
   }
 
   const searchLower = search.toLowerCase();
-  const filtered = search
+  let filtered = search
     ? students.filter(
         (s) =>
           s.firstName.toLowerCase().includes(searchLower) ||
@@ -137,7 +143,18 @@ export default function StudentsPage() {
       )
     : students;
 
+  // Apply status filter
+  if (filter === "enrolled") {
+    filtered = filtered.filter((s) => s.isEnrolled);
+  } else if (filter === "not_enrolled") {
+    filtered = filtered.filter((s) => !s.isEnrolled && s.isRegistered);
+  } else if (filter === "not_registered") {
+    filtered = filtered.filter((s) => !s.isRegistered);
+  }
+
+  const rosterCount = students.length;
   const registeredCount = students.filter((s) => s.isRegistered).length;
+  const enrolledCount = students.filter((s) => s.isEnrolled).length;
 
   if (loading) {
     return (
@@ -158,10 +175,10 @@ export default function StudentsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6" /> Students
+            <Users className="w-6 h-6" /> Class Roster
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {students.length} in roster · {registeredCount} registered
+            Manage the full student roster for {className || "this class"}
           </p>
         </div>
 
@@ -225,10 +242,47 @@ export default function StudentsPage() {
         </Dialog>
       </div>
 
+      {/* Stats cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter("all")}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Roster</p>
+                <p className="text-2xl font-bold">{rosterCount}</p>
+              </div>
+              <Users className={`w-8 h-8 ${filter === "all" ? "text-primary" : "text-muted-foreground/40"}`} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter("enrolled")}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Enrolled</p>
+                <p className="text-2xl font-bold">{enrolledCount}</p>
+              </div>
+              <UserCheck className={`w-8 h-8 ${filter === "enrolled" ? "text-green-500" : "text-muted-foreground/40"}`} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter("not_registered")}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Not Registered</p>
+                <p className="text-2xl font-bold">{rosterCount - registeredCount}</p>
+              </div>
+              <UserX className={`w-8 h-8 ${filter === "not_registered" ? "text-amber-500" : "text-muted-foreground/40"}`} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or 81 number..."
@@ -237,8 +291,22 @@ export default function StudentsPage() {
                 className="pl-9"
               />
             </div>
+            {/* Filter pills */}
+            <div className="flex gap-1.5 flex-wrap">
+              {(["all", "enrolled", "not_enrolled", "not_registered"] as const).map((f) => (
+                <Button
+                  key={f}
+                  variant={filter === f ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter(f)}
+                  className="text-xs h-8"
+                >
+                  {f === "all" ? "All" : f === "enrolled" ? "Enrolled" : f === "not_enrolled" ? "Registered Only" : "Not Registered"}
+                </Button>
+              ))}
+            </div>
           </div>
-          {search && (
+          {(search || filter !== "all") && (
             <p className="text-xs text-muted-foreground mt-2">
               Showing {filtered.length} of {students.length} students
             </p>
@@ -247,7 +315,7 @@ export default function StudentsPage() {
         <CardContent>
           {filtered.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              <p>{search ? "No students match your search." : "No students in the roster yet."}</p>
+              <p>{search || filter !== "all" ? "No students match your search/filter." : "No students in the roster yet."}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -265,9 +333,10 @@ export default function StudentsPage() {
                       {s.orgDefinedId}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {/* Registration status */}
                     {s.isRegistered ? (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
                         <CheckCircle className="w-3 h-3" /> Registered
                       </span>
                     ) : (
@@ -275,6 +344,17 @@ export default function StudentsPage() {
                         <Clock className="w-3 h-3" /> Not registered
                       </span>
                     )}
+
+                    {/* Enrollment status */}
+                    {s.isEnrolled ? (
+                      <Badge variant="success" className="text-xs">
+                        <UserCheck className="w-3 h-3 mr-1" /> Enrolled
+                      </Badge>
+                    ) : s.isRegistered ? (
+                      <Badge variant="secondary" className="text-xs">
+                        <UserX className="w-3 h-3 mr-1" /> Not Enrolled
+                      </Badge>
+                    ) : null}
 
                     {deleteId === s.id ? (
                       <div className="flex items-center gap-1">

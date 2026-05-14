@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## v0.0.14 - 2026-05-14
 
+- Added /admin-register to the list of public routes in proxy middleware.
+- Implemented admin registration, dashboard, user management, and authorization system.
 - Added enrollment status tracking and filtering to student roster and migrated classes list to client-side data fetching.
 - Implemented class roster management with CSV upload support and student list synchronization.
 

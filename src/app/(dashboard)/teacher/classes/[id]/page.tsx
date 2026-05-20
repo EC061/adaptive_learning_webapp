@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, BookOpen, Link2, ArrowLeft, UserCheck, ClipboardList } from "lucide-react";
+import { Users, BookOpen, Link2, ArrowLeft, UserCheck, ClipboardList, FileText, FileUp } from "lucide-react";
 
 export default async function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -21,7 +21,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       classTopics: { include: { topic: { include: { subtopics: true } } }, orderBy: { topic: { order: "asc" } } },
       invitations: { where: { active: true }, orderBy: { createdAt: "desc" }, take: 3 },
       studentList: { orderBy: [{ lastName: "asc" }, { firstName: "asc" }] },
-      _count: { select: { enrollments: true, studentList: true } },
+      learningMaterials: { orderBy: { createdAt: "desc" }, take: 3 },
+      _count: { select: { enrollments: true, studentList: true, learningMaterials: true } },
     },
   });
 
@@ -94,6 +95,55 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Learning Materials Section */}
+        <div className="md:col-span-2 space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2"><FileText className="w-4 h-4" /> Learning Materials</CardTitle>
+              <Button size="sm" asChild>
+                <Link href={`/teacher/classes/${cls.id}/materials`}>Manage Materials</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {cls.learningMaterials.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="mb-3">No materials uploaded yet.</p>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/teacher/classes/${cls.id}/materials`}><FileUp className="w-4 h-4 mr-2" /> Upload Materials</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cls.learningMaterials.map((mat) => (
+                    <div key={mat.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-md">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{mat.title || mat.originalName}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <span>{(mat.sizeBytes / 1024 / 1024).toFixed(2)} MB</span>
+                            <span>•</span>
+                            <span>{mat.processingStatus === "SUCCESS" ? "Ready" : mat.processingStatus === "FAILED" ? "Failed" : "Processing"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {cls._count.learningMaterials > 3 && (
+                    <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
+                      <Link href={`/teacher/classes/${cls.id}/materials`}>
+                        View all {cls._count.learningMaterials} materials
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>

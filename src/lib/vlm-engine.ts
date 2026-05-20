@@ -2,9 +2,13 @@ import { OpenAI } from "openai";
 import { prisma } from "@/lib/prisma";
 import { getS3Config, presignGetUrl } from "@/lib/storage";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 const TIER1_SCHEMA = {
   name: "page_assessment",
@@ -72,7 +76,7 @@ async function processPage(
   const prompt = "You are analyzing a single page from an educational document. Extract the key concept and a brief description. Determine if this page is needed for understanding the core material (e.g., skip table of contents or blank pages).";
 
   const response = await retryWithExponentialBackoff(() =>
-    openai.chat.completions.create({
+    getOpenAI().chat.completions.create({
       model,
       messages: [
         {
@@ -184,7 +188,7 @@ export async function processMaterial(materialId: string) {
 
   try {
     const response = await retryWithExponentialBackoff(() =>
-      openai.chat.completions.create({
+      getOpenAI().chat.completions.create({
         model,
         messages: [{ role: "user", content: contentArray }],
         response_format: { type: "json_schema", json_schema: TIER2_SCHEMA as any },

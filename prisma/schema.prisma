@@ -41,6 +41,7 @@ model Teacher {
 model LearningMaterial {
   id           String  @id @default(cuid())
   teacherId    String
+  classId      String
   title        String?
   originalName String
   mimeType     String
@@ -48,14 +49,42 @@ model LearningMaterial {
   storageKey   String
   bucket       String
   uploadStatus String  @default("PENDING")
+  processingStatus String @default("IDLE")
   folder       String?
+  totalPages     Int     @default(0)
+  processedPages Int     @default(0)
+  errorMessage   String?
+  batchDescription  String?
+  batchKeyConcepts  String[]  @default([])
 
   teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  pages   MaterialPage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([teacherId])
+  @@index([classId])
+}
+
+model MaterialPage {
+  id           String  @id @default(cuid())
+  materialId   String
+  pageNumber   Int
+  storageKey   String
+
+  // Tier 1 VLM results (null = not yet processed)
+  needed       Boolean?
+  keyConcept   String?
+  description  String?
+
+  material LearningMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([materialId, pageNumber])
+  @@index([materialId])
 }
 
 model Student {
@@ -84,6 +113,7 @@ model Class {
   moduleProgress ModuleProgress[]
   quizAttempts   QuizAttempt[]
   studentList    ClassStudentList[]
+  learningMaterials LearningMaterial[]
 }
 
 model ClassStudentList {

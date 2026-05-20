@@ -170,7 +170,7 @@ async function sendChatCompletion(
   const localEndpoint = cleanEnvValue(process.env.LOCAL_API_ENDPOINT);
   const endpoint = isLocalProvider
     ? (localEndpoint ? resolveLocalChatEndpoint(localEndpoint) : "")
-    : "https://api.openai.com/v1/chat/completions";
+    : undefined;
 
   if (!isLocalProvider && !apiKey) {
     console.error("OPENAI_API_KEY is not set");
@@ -186,116 +186,48 @@ async function sendChatCompletion(
     return NextResponse.json({ error: "A local model selection is required" }, { status: 400 });
   }
 
-  const payload: {
-    model: string;
-    messages: ChatMessage[];
-    temperature: number;
-    stream: boolean;
-    stream_options?: { include_usage: true };
-    max_completion_tokens?: number;
-    max_tokens?: number;
-    service_tier?: string;
-  } = {
-    model,
-    messages,
-    temperature: 0.7,
-    stream: true,
-  };
+  // Use the OpenAI SDK
+  const { OpenAI } = await import("openai");
+  const openai = new OpenAI({
+    apiKey: apiKey || "dummy-key-for-local",
+    baseURL: isLocalProvider ? endpoint?.replace(/\/chat\/completions$/, '') : undefined,
+  });
 
-  if (!isLocalProvider && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")) {
-    payload.service_tier = serviceTier;
-    payload.stream_options = { include_usage: true };
-  }
-
-  if (options?.maxCompletionTokens) {
-    if (isLocalProvider) {
-      payload.max_tokens = options.maxCompletionTokens;
-    } else {
-      payload.max_completion_tokens = options.maxCompletionTokens;
-    }
-  }
-
-  let response: Response | null = null;
-  let attempt = 0;
-  const maxRetries = !isLocalProvider && serviceTier === "flex" ? 3 : 0;
-  let baseDelay = 1000;
-  let lastErrorData: unknown = null;
-
-  const requestInit = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-    },
-    body: JSON.stringify(payload),
-  };
-
-  if (isLocalProvider) {
-    try {
-      response = await fetchLocalEndpointWithRetry(endpoint, {
-        ...requestInit,
-        retryLabel: "local chat request",
-      });
-    } catch {
-      lastErrorData = { error: { message: "Network or fetch error" } };
-    }
-  } else {
-    while (attempt <= maxRetries) {
-      try {
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          break;
-        }
-
-        lastErrorData = await response.json();
-
-        if (response.status !== 429 && response.status < 500) {
-          break;
-        }
-      } catch {
-        lastErrorData = { error: { message: "Network or fetch error" } };
+  try {
+    const response = await openai.chat.completions.create(
+      {
+        model,
+        messages: messages as any,
+        temperature: 0.7,
+        stream: true,
+        max_completion_tokens: !isLocalProvider ? options?.maxCompletionTokens : undefined,
+        max_tokens: isLocalProvider ? options?.maxCompletionTokens : undefined,
+        service_tier: !isLocalProvider && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")
+          ? (serviceTier as any)
+          : undefined,
+        stream_options: !isLocalProvider && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")
+          ? { include_usage: true }
+          : undefined,
+      },
+      {
+        maxRetries: isLocalProvider ? 0 : 3,
       }
+    );
 
-      attempt++;
-      if (attempt <= maxRetries) {
-        console.warn(`${provider} chat request failed, retrying in ${baseDelay}ms... (Attempt ${attempt}/${maxRetries})`);
-        await new Promise((resolve) => setTimeout(resolve, baseDelay));
-        baseDelay *= 2;
-      }
-    }
-  }
-
-  if (isLocalProvider && response && !response.ok) {
-    try {
-      lastErrorData = await response.json();
-    } catch {
-      lastErrorData = { error: { message: "Unknown local chat error" } };
-    }
-  }
-
-  if (!response || !response.ok) {
-    console.error(`${provider} chat error:`, lastErrorData);
+    return new Response(response.toReadableStream(), {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error: any) {
+    console.error(`${provider} chat error:`, error);
     return NextResponse.json(
       { error: `Failed to communicate with ${isLocalProvider ? "local chat endpoint" : "OpenAI"}` },
-      { status: response ? response.status : 500 }
+      { status: error.status || 500 }
     );
   }
-
-  return new Response(response.body, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
 }
 
 export async function POST(req: Request) {

@@ -12,17 +12,26 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id: classId } = await params;
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
+  const cls = await prisma.class.findFirst({
+    where: { id: classId, teacherId: teacher.id },
+  });
+
+  if (!cls) {
+    return NextResponse.json({ error: "Class not found" }, { status: 404 });
+  }
+
   const items = await prisma.learningMaterial.findMany({
-    where: { teacherId: teacher.id },
+    where: { classId: classId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -32,6 +41,10 @@ export async function GET() {
       sizeBytes: true,
       bucket: true,
       uploadStatus: true,
+      processingStatus: true,
+      totalPages: true,
+      processedPages: true,
+      errorMessage: true,
       folder: true,
       createdAt: true,
     },
@@ -40,14 +53,23 @@ export async function GET() {
   return NextResponse.json({ materials: items });
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "TEACHER") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id: classId } = await params;
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+
+  const cls = await prisma.class.findFirst({
+    where: { id: classId, teacherId: teacher.id },
+  });
+
+  if (!cls) {
+    return NextResponse.json({ error: "Class not found" }, { status: 404 });
+  }
 
   let bucket: string;
   try {
@@ -59,7 +81,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { title?: string; originalName?: string; mimeType?: string; sizeBytes?: number };
+  let body: { title?: string; originalName?: string; sizeBytes?: number; totalPages?: number };
   try {
     body = await req.json();
   } catch {
@@ -71,6 +93,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "originalName is required" }, { status: 400 });
   }
 
+  if (!originalName.toLowerCase().endsWith(".pdf")) {
+    return NextResponse.json({ error: "Only PDF files are supported" }, { status: 400 });
+  }
+
   const sizeBytes = typeof body.sizeBytes === "number" ? body.sizeBytes : 0;
   const maxBytes = getMaxUploadBytes();
   if (sizeBytes < 1 || sizeBytes > maxBytes) {
@@ -79,11 +105,10 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+  
+  const totalPages = typeof body.totalPages === "number" ? body.totalPages : 0;
 
-  const mimeType =
-    typeof body.mimeType === "string" && body.mimeType.length > 0
-      ? body.mimeType.slice(0, 200)
-      : "application/octet-stream";
+  const mimeType = "application/pdf";
 
   const title =
     typeof body.title === "string" && body.title.trim().length > 0
@@ -91,12 +116,13 @@ export async function POST(req: NextRequest) {
       : null;
 
   const id = randomUUID();
-  const storageKey = buildStorageKey(teacher.id, id, originalName);
+  const storageKey = buildStorageKey(teacher.id, classId, id, originalName);
 
   const material = await prisma.learningMaterial.create({
     data: {
       id,
       teacherId: teacher.id,
+      classId,
       title,
       originalName,
       mimeType,
@@ -104,6 +130,8 @@ export async function POST(req: NextRequest) {
       storageKey,
       bucket,
       uploadStatus: "PENDING",
+      processingStatus: "IDLE",
+      totalPages,
     },
   });
 

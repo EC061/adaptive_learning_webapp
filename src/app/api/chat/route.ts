@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import {
-  cleanEnvValue,
-  fetchLocalEndpointWithRetry,
-  resolveLocalChatEndpoint,
-} from "./local";
+import { resolveProvider, roleToChatUseCase } from "@/lib/ai-provider";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -13,11 +9,6 @@ type ChatMessage = {
 };
 
 type ChatMode = "chat" | "quiz-review";
-type ChatProvider = "openai" | "local";
-
-function resolveChatProvider(value: unknown): ChatProvider {
-  return value === "local" ? "local" : "openai";
-}
 
 function isChatMessageArray(value: unknown): value is ChatMessage[] {
   return Array.isArray(value) && value.every((message) => {
@@ -150,67 +141,81 @@ async function buildMessages(mode: ChatMode, messages: ChatMessage[]) {
   };
 }
 
+function resolveLocalChatEndpoint(endpoint: string): string {
+  const normalized = endpoint.replace(/\/+$/, "");
+  return normalized.endsWith("/chat/completions")
+    ? normalized
+    : `${normalized}/chat/completions`;
+}
+
 async function sendChatCompletion(
   messages: ChatMessage[],
   options?: {
     maxCompletionTokens?: number;
-    model?: string;
-    provider?: ChatProvider;
+    role?: string;
   }
 ) {
-  const provider = options?.provider ?? "openai";
-  const isLocalProvider = provider === "local";
-  const apiKey = isLocalProvider
-    ? cleanEnvValue(process.env.LOCAL_API_TOKEN)
-    : cleanEnvValue(process.env.OPENAI_API_KEY);
-  const model = isLocalProvider
-    ? options?.model?.trim() ?? ""
-    : cleanEnvValue(process.env.OPENAI_MODEL, "gpt-5.4");
-  const serviceTier = cleanEnvValue(process.env.OPENAI_SERVICE_TIER, "flex");
-  const localEndpoint = cleanEnvValue(process.env.LOCAL_API_ENDPOINT);
-  const endpoint = isLocalProvider
-    ? (localEndpoint ? resolveLocalChatEndpoint(localEndpoint) : "")
+  const role = options?.role ?? "STUDENT";
+  const useCase = roleToChatUseCase(role);
+  const provider = await resolveProvider(useCase);
+
+  if (!provider) {
+    console.error(`[Chat] No AI provider configured for use case: ${useCase}`);
+    return NextResponse.json(
+      { error: "AI chat is not configured. Please contact your administrator." },
+      { status: 503 }
+    );
+  }
+
+  const isLocal = provider.providerType === "local";
+
+  if (!isLocal && !provider.apiKey) {
+    console.error("[Chat] OpenAI provider has no API key configured");
+    return NextResponse.json(
+      { error: "OpenAI integration is not properly configured." },
+      { status: 503 }
+    );
+  }
+
+  if (isLocal && !provider.baseUrl) {
+    console.error("[Chat] Local provider has no base URL configured");
+    return NextResponse.json(
+      { error: "Local chat integration is not properly configured." },
+      { status: 503 }
+    );
+  }
+
+  // Construct the OpenAI SDK client from resolved config
+  const { OpenAI } = await import("openai");
+  const baseURL = isLocal
+    ? resolveLocalChatEndpoint(provider.baseUrl!).replace(/\/chat\/completions$/, "")
     : undefined;
 
-  if (!isLocalProvider && !apiKey) {
-    console.error("OPENAI_API_KEY is not set");
-    return NextResponse.json({ error: "OpenAI integration is currently unavailable" }, { status: 503 });
-  }
-
-  if (isLocalProvider && !endpoint) {
-    console.error("LOCAL_API_ENDPOINT is not set");
-    return NextResponse.json({ error: "Local chat integration is currently unavailable" }, { status: 503 });
-  }
-
-  if (isLocalProvider && !model) {
-    return NextResponse.json({ error: "A local model selection is required" }, { status: 400 });
-  }
-
-  // Use the OpenAI SDK
-  const { OpenAI } = await import("openai");
   const openai = new OpenAI({
-    apiKey: apiKey || "dummy-key-for-local",
-    baseURL: isLocalProvider ? endpoint?.replace(/\/chat\/completions$/, '') : undefined,
+    apiKey: provider.apiKey || "dummy-key-for-local",
+    baseURL,
   });
+
+  const serviceTier = provider.serviceTier;
 
   try {
     const response = await openai.chat.completions.create(
       {
-        model,
+        model: provider.model,
         messages: messages as any,
         temperature: 0.7,
         stream: true,
-        max_completion_tokens: !isLocalProvider ? options?.maxCompletionTokens : undefined,
-        max_tokens: isLocalProvider ? options?.maxCompletionTokens : undefined,
-        service_tier: !isLocalProvider && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")
+        max_completion_tokens: !isLocal ? options?.maxCompletionTokens : undefined,
+        max_tokens: isLocal ? options?.maxCompletionTokens : undefined,
+        service_tier: !isLocal && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")
           ? (serviceTier as any)
           : undefined,
-        stream_options: !isLocalProvider && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")
+        stream_options: !isLocal && (serviceTier === "auto" || serviceTier === "default" || serviceTier === "flex")
           ? { include_usage: true }
           : undefined,
       },
       {
-        maxRetries: isLocalProvider ? 0 : 3,
+        maxRetries: isLocal ? 0 : 3,
       }
     );
 
@@ -222,9 +227,9 @@ async function sendChatCompletion(
       },
     });
   } catch (error: any) {
-    console.error(`${provider} chat error:`, error);
+    console.error(`[Chat] ${provider.providerType} error:`, error);
     return NextResponse.json(
-      { error: `Failed to communicate with ${isLocalProvider ? "local chat endpoint" : "OpenAI"}` },
+      { error: `Failed to communicate with ${isLocal ? "local chat endpoint" : "OpenAI"}` },
       { status: error.status || 500 }
     );
   }
@@ -232,10 +237,13 @@ async function sendChatCompletion(
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const mode = body?.mode === "quiz-review" ? "quiz-review" : "chat";
-    const provider = resolveChatProvider(body?.provider);
-    const model = typeof body?.model === "string" ? body.model.trim() : "";
     const messages = body?.messages;
 
     if (!isChatMessageArray(messages)) {
@@ -249,8 +257,7 @@ export async function POST(req: Request) {
 
     return sendChatCompletion(resolved.messages, {
       maxCompletionTokens: mode === "quiz-review" ? 500 : undefined,
-      model,
-      provider,
+      role: session.user.role,
     });
   } catch (error) {
     console.error("Error handling chat request:", error);

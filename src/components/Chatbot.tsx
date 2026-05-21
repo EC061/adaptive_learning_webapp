@@ -1,17 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, Eraser, MessageCircle, RefreshCw, Send, Square, X } from "lucide-react";
+import { Eraser, MessageCircle, Send, Square, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Rnd } from "react-rnd";
 import remarkGfm from "remark-gfm";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type Message = {
   role: "user" | "assistant";
@@ -19,7 +12,6 @@ type Message = {
 };
 
 type ChatMode = "chat" | "quiz-review";
-type ChatProvider = "openai" | "local";
 
 type ViewportSize = {
   width: number;
@@ -55,14 +47,6 @@ function getApiMessages(messages: Message[]) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
-}
-
-function formatModelName(model: string) {
-  return model
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function getViewportSize(): ViewportSize {
@@ -127,11 +111,6 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [input, setInput] = useState("");
-  const [chatProvider, setChatProvider] = useState<ChatProvider>("openai");
-  const [localModels, setLocalModels] = useState<string[]>([]);
-  const [selectedLocalModel, setSelectedLocalModel] = useState("");
-  const [isLoadingLocalModels, setIsLoadingLocalModels] = useState(false);
-  const [localModelsError, setLocalModelsError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoReviewTriggered, setHasAutoReviewTriggered] = useState(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
@@ -167,66 +146,13 @@ export default function Chatbot() {
 
   useEffect(() => {
     if (!isOpen || hasAutoReviewTriggered) return;
-    if (chatProvider === "local" && !selectedLocalModel) return;
 
     setHasAutoReviewTriggered(true);
     void sendRequest({
       messages: getInitialMessages(),
       mode: "quiz-review",
-      model: chatProvider === "local" ? selectedLocalModel : undefined,
-      provider: chatProvider,
     });
-  }, [chatProvider, hasAutoReviewTriggered, isOpen, selectedLocalModel]);
-
-  const loadLocalModels = useCallback(async (signal?: AbortSignal) => {
-    setIsLoadingLocalModels(true);
-    setLocalModelsError("");
-
-    try {
-      const response = await fetch("/api/chat/models", { signal });
-      const data: unknown = await response.json();
-
-      if (!response.ok) {
-        const message =
-          data && typeof data === "object" && typeof (data as { error?: unknown }).error === "string"
-            ? (data as { error: string }).error
-            : "Failed to load local models";
-        throw new Error(message);
-      }
-
-      const models =
-        data && typeof data === "object" && Array.isArray((data as { models?: unknown }).models)
-          ? (data as { models: unknown[] }).models.filter((model): model is string => typeof model === "string")
-          : [];
-
-      setLocalModels(models);
-      setSelectedLocalModel((currentModel) => (models.includes(currentModel) ? currentModel : ""));
-      if (models.length === 0) {
-        setLocalModelsError("No local models were returned by the endpoint.");
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-
-      setLocalModels([]);
-      setSelectedLocalModel("");
-      setLocalModelsError(error instanceof Error ? error.message : "Failed to load local models");
-    } finally {
-      setIsLoadingLocalModels(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (chatProvider !== "local") return;
-
-    const controller = new AbortController();
-    void loadLocalModels(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [chatProvider, loadLocalModels]);
+  }, [hasAutoReviewTriggered, isOpen]);
 
   const cancelActiveRequest = () => {
     activeRequestIdRef.current += 1;
@@ -251,29 +177,12 @@ export default function Chatbot() {
     resetConversation();
   };
 
-  const handleProviderChange = (provider: ChatProvider) => {
-    if (provider === chatProvider) return;
-
-    resetConversation();
-    setChatProvider(provider);
-  };
-
-  const handleLocalModelChange = (model: string) => {
-    if (model === selectedLocalModel || isLoading) return;
-
-    setSelectedLocalModel(model);
-  };
-
   const sendRequest = async ({
     messages: requestMessages,
     mode,
-    model,
-    provider,
   }: {
     messages: Message[];
     mode: ChatMode;
-    model?: string;
-    provider: ChatProvider;
   }) => {
     cancelActiveRequest();
 
@@ -291,8 +200,6 @@ export default function Chatbot() {
         signal: controller.signal,
         body: JSON.stringify({
           mode,
-          model,
-          provider,
           messages: getApiMessages(requestMessages).map((message) => ({
             role: message.role,
             content: message.content,
@@ -460,7 +367,6 @@ export default function Chatbot() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    if (chatProvider === "local" && !selectedLocalModel) return;
 
     const userMessage: Message = { role: "user", content: input };
     const nextMessages = [...messages, userMessage];
@@ -470,13 +376,10 @@ export default function Chatbot() {
     await sendRequest({
       messages: nextMessages,
       mode: "chat",
-      model: chatProvider === "local" ? selectedLocalModel : undefined,
-      provider: chatProvider,
     });
   };
 
   const panelLimits = getPanelLimits(viewportSize);
-  const isLocalModelMissing = chatProvider === "local" && !selectedLocalModel;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
@@ -578,87 +481,6 @@ export default function Chatbot() {
             </div>
 
             <div className="chatbot-no-drag border-t border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  API
-                </span>
-                <div
-                  className="inline-flex rounded-full border border-gray-200 bg-gray-100 p-0.5 text-xs font-medium dark:border-gray-700 dark:bg-gray-800"
-                  role="group"
-                  aria-label="Chat API provider"
-                >
-                  {(["openai", "local"] as const).map((provider) => (
-                    <button
-                      key={provider}
-                      type="button"
-                      onClick={() => handleProviderChange(provider)}
-                      disabled={isLoading}
-                      aria-pressed={chatProvider === provider}
-                      className={`rounded-full px-3 py-1 transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                        chatProvider === provider
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                      }`}
-                    >
-                      {provider === "openai" ? "OpenAI" : "Local"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {chatProvider === "local" && (
-                <div className="mb-3 overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 shadow-sm dark:border-blue-900/50 dark:from-blue-950/30 dark:via-gray-900 dark:to-indigo-950/30">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-start gap-2">
-                      <span className="mt-0.5 rounded-lg bg-blue-600/10 p-1.5 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300">
-                        <Bot size={15} />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
-                          Local model
-                        </p>
-                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                          {selectedLocalModel
-                            ? formatModelName(selectedLocalModel)
-                            : isLoadingLocalModels
-                              ? "Loading available models..."
-                              : "Choose a model to start"}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void loadLocalModels()}
-                      disabled={isLoadingLocalModels || isLoading}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-blue-200 bg-white/80 px-2 py-1 text-xs font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-900/70 dark:bg-gray-900/80 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                    >
-                      <RefreshCw size={12} className={isLoadingLocalModels ? "animate-spin" : ""} />
-                      {isLoadingLocalModels ? "Loading" : "Refresh"}
-                    </button>
-                  </div>
-                  <Select
-                    value={selectedLocalModel}
-                    onValueChange={handleLocalModelChange}
-                    disabled={isLoading || isLoadingLocalModels || localModels.length === 0}
-                  >
-                    <SelectTrigger className="h-10 rounded-xl border-blue-200 bg-white/95 text-sm shadow-sm transition-colors hover:border-blue-300 dark:border-blue-900/70 dark:bg-gray-950/80 dark:hover:border-blue-700">
-                      <SelectValue placeholder={isLoadingLocalModels ? "Loading models..." : "Select a local model"} />
-                    </SelectTrigger>
-                    <SelectContent position="item-aligned" className="border-blue-100 dark:border-blue-900/70">
-                      {localModels.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate font-medium">{formatModelName(model)}</span>
-                            <span className="truncate text-xs text-gray-500 dark:text-gray-400">{model}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {localModelsError && (
-                    <p className="text-xs text-red-600 dark:text-red-400">{localModelsError}</p>
-                  )}
-                </div>
-              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -677,7 +499,7 @@ export default function Chatbot() {
                 <button
                   type={isLoading ? "button" : "submit"}
                   onClick={isLoading ? cancelActiveRequest : undefined}
-                  disabled={!isLoading && (!input.trim() || isLocalModelMissing)}
+                  disabled={!isLoading && !input.trim()}
                   className={`rounded-full p-2 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                     isLoading
                       ? "bg-red-600 hover:bg-red-700"

@@ -13,6 +13,7 @@ import {
   FileUp,
   LogOut,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 
 interface NavItem {
@@ -60,6 +61,7 @@ function SidebarContent({
   const adminNav: NavItem[] = [
     { href: "/admin", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
     { href: "/admin/users", label: "Users", icon: <Users className="w-4 h-4" /> },
+    { href: "/admin/ai-config", label: "AI Config", icon: <Settings className="w-4 h-4" /> },
   ];
 
   const navItems = role === "ADMIN" ? adminNav : role === "TEACHER" ? teacherNav : studentNav;

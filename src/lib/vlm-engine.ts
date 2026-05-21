@@ -1,14 +1,7 @@
 import { OpenAI } from "openai";
 import { prisma } from "@/lib/prisma";
 import { getS3Config, presignGetUrl } from "@/lib/storage";
-
-let _openai: OpenAI | null = null;
-function getOpenAI() {
-  if (!_openai) {
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return _openai;
-}
+import { resolveProvider } from "@/lib/ai-provider";
 
 const TIER1_SCHEMA = {
   name: "page_assessment",
@@ -63,12 +56,48 @@ async function retryWithExponentialBackoff<T>(
   throw new Error("Unreachable");
 }
 
+/**
+ * Build an OpenAI client from the resolved PDF description provider config.
+ * Throws if no provider is configured.
+ */
+async function getConfiguredOpenAI(): Promise<{
+  client: OpenAI;
+  model: string;
+  serviceTier: string | null;
+}> {
+  const provider = await resolveProvider("pdf_description");
+
+  if (!provider) {
+    throw new Error(
+      "No AI provider configured for PDF description generation. " +
+        "An admin must configure the 'pdf_description' use case in the AI Config dashboard."
+    );
+  }
+
+  if (!provider.apiKey) {
+    throw new Error("PDF description provider has no API key configured.");
+  }
+
+  const client = new OpenAI({
+    apiKey: provider.apiKey,
+    baseURL: provider.baseUrl || undefined,
+  });
+
+  return {
+    client,
+    model: provider.model,
+    serviceTier: provider.serviceTier,
+  };
+}
+
 async function processPage(
   materialId: string,
   pageNumber: number,
   storageKey: string,
   bucket: string,
-  model: string
+  openai: OpenAI,
+  model: string,
+  serviceTier: string | null
 ) {
   // Generate a JIT URL for this specific page
   const presignedUrl = await presignGetUrl(bucket, storageKey, 3600); // 1 hour expiry
@@ -76,7 +105,7 @@ async function processPage(
   const prompt = "You are analyzing a single page from an educational document. Extract the key concept and a brief description. Determine if this page is needed for understanding the core material (e.g., skip table of contents or blank pages).";
 
   const response = await retryWithExponentialBackoff(() =>
-    getOpenAI().chat.completions.create({
+    openai.chat.completions.create({
       model,
       messages: [
         {
@@ -88,7 +117,7 @@ async function processPage(
         },
       ],
       response_format: { type: "json_schema", json_schema: TIER1_SCHEMA as any },
-      service_tier: process.env.OPENAI_SERVICE_TIER === "flex" ? "flex" : undefined,
+      service_tier: serviceTier === "flex" ? "flex" : undefined,
     })
   );
 
@@ -128,7 +157,8 @@ export async function processMaterial(materialId: string) {
     throw new Error("S3 not configured");
   }
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o";
+  // Resolve provider from DB config
+  const { client: openai, model, serviceTier } = await getConfiguredOpenAI();
 
   // Tier 1: Process pages in batches of 5
   const CONCURRENCY = 5;
@@ -138,7 +168,7 @@ export async function processMaterial(materialId: string) {
     const batch = pagesToProcess.slice(i, i + CONCURRENCY);
     await Promise.all(
       batch.map((page) =>
-        processPage(materialId, page.pageNumber, page.storageKey, bucket, model).catch((err) => {
+        processPage(materialId, page.pageNumber, page.storageKey, bucket, openai, model, serviceTier).catch((err) => {
           console.error(`[VLM Engine] Failed to process page ${page.pageNumber}:`, err);
           // Don't fail the whole batch, allow retry mechanism later
         })
@@ -188,11 +218,11 @@ export async function processMaterial(materialId: string) {
 
   try {
     const response = await retryWithExponentialBackoff(() =>
-      getOpenAI().chat.completions.create({
+      openai.chat.completions.create({
         model,
         messages: [{ role: "user", content: contentArray }],
         response_format: { type: "json_schema", json_schema: TIER2_SCHEMA as any },
-        service_tier: process.env.OPENAI_SERVICE_TIER === "flex" ? "flex" : undefined,
+        service_tier: serviceTier === "flex" ? "flex" : undefined,
       })
     );
 

@@ -317,3 +317,51 @@ model QuizAnswer {
   question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   selectedOption Option?     @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
 }
+
+// ─── AI Provider Configuration ────────────────────────────────────────────────
+// providerType: "openai" | "local"
+
+model AiProvider {
+  id           String   @id @default(cuid())
+  name         String                // human label, e.g. "Production OpenAI"
+  providerType String                // "openai" | "local"
+  baseUrl      String?               // null for OpenAI (uses default), URL for local
+  apiKeyEnc    String?               // AES-256-GCM encrypted API key
+  apiKeyIv     String?               // IV for decryption
+  apiKeyTag    String?               // Auth tag for decryption
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  models      AiModel[]
+  assignments AiUseCaseAssignment[]
+}
+
+model AiModel {
+  id          String   @id @default(cuid())
+  providerId  String
+  modelId     String                // e.g. "gpt-5.1", "llama-3.3-70b"
+  displayName String?               // optional friendly name
+  serviceTier String?               // "flex" | "auto" | "default" | null
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  provider    AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  assignments AiUseCaseAssignment[]
+
+  @@unique([providerId, modelId])
+  @@index([providerId])
+}
+
+// useCase: "teacher_chat" | "student_chat" | "pdf_description"
+model AiUseCaseAssignment {
+  id         String   @id @default(cuid())
+  useCase    String   @unique       // only one assignment per use case
+  providerId String
+  modelId    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  provider AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  model    AiModel    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+}

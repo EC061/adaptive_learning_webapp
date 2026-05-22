@@ -349,7 +349,7 @@ model AiModel {
   provider    AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
   assignments AiUseCaseAssignment[]
 
-  @@unique([providerId, modelId])
+  @@unique([providerId, modelId, serviceTier])
   @@index([providerId])
 }
 

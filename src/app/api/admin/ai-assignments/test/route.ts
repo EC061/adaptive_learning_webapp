@@ -68,7 +68,7 @@ export async function POST(req: Request) {
           content: "Reply with exactly one word: OK",
         },
       ],
-      max_tokens: 5,
+      max_completion_tokens: 5,
       temperature: 0,
       service_tier:
         !isLocal &&

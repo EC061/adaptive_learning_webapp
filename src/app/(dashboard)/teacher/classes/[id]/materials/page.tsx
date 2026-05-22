@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import MaterialUploadForm from "./material-upload";
 import Link from "next/link";
 import { FileText, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import MaterialDeleteButton from "./material-delete-button";
 
 export default async function ClassMaterialsPage(props: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -118,6 +119,9 @@ export default async function ClassMaterialsPage(props: { params: Promise<{ id: 
                       View Analysis
                     </Link>
                   )}
+                  <div className="mt-3">
+                    <MaterialDeleteButton classId={classId} materialId={mat.id} />
+                  </div>
                 </div>
               </div>
             );

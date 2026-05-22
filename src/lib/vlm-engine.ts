@@ -3,6 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { getS3Config, presignGetUrl } from "@/lib/storage";
 import { resolveProvider } from "@/lib/ai-provider";
 
+// In-memory set of material IDs whose processing should be aborted.
+const cancelledMaterials = new Set<string>();
+
+export function cancelMaterial(materialId: string) {
+  cancelledMaterials.add(materialId);
+}
+
+function isCancelled(materialId: string): boolean {
+  return cancelledMaterials.has(materialId);
+}
+
 const TIER1_SCHEMA = {
   name: "page_assessment",
   strict: true,
@@ -142,6 +153,9 @@ async function processPage(
 }
 
 export async function processMaterial(materialId: string) {
+  // Clear any stale cancellation from a previous run of the same ID
+  cancelledMaterials.delete(materialId);
+
   const material = await prisma.learningMaterial.findUnique({
     where: { id: materialId },
     include: { pages: { orderBy: { pageNumber: "asc" } } },
@@ -165,6 +179,11 @@ export async function processMaterial(materialId: string) {
   const pagesToProcess = material.pages.filter(p => p.description === null); // Support retry
   
   for (let i = 0; i < pagesToProcess.length; i += CONCURRENCY) {
+    if (isCancelled(materialId)) {
+      console.log(`[VLM Engine] Processing cancelled for material ${materialId}`);
+      cancelledMaterials.delete(materialId);
+      return;
+    }
     const batch = pagesToProcess.slice(i, i + CONCURRENCY);
     await Promise.all(
       batch.map((page) =>
@@ -174,6 +193,13 @@ export async function processMaterial(materialId: string) {
         })
       )
     );
+  }
+
+  // Check cancellation before Tier 2
+  if (isCancelled(materialId)) {
+    console.log(`[VLM Engine] Processing cancelled for material ${materialId} before Tier 2`);
+    cancelledMaterials.delete(materialId);
+    return;
   }
 
   // Tier 2: Batch summary

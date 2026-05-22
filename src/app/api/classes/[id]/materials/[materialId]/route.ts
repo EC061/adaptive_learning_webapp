@@ -1,0 +1,67 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { deleteS3Objects, listS3Objects, getS3Config } from "@/lib/storage";
+import { cancelMaterial } from "@/lib/vlm-engine";
+
+export const runtime = "nodejs";
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; materialId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "TEACHER") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: classId, materialId } = await params;
+  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
+  if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+
+  const material = await prisma.learningMaterial.findUnique({
+    where: { id: materialId },
+    include: { class: true },
+  });
+
+  if (!material || material.classId !== classId || material.class.teacherId !== teacher.id) {
+    return NextResponse.json({ error: "Material not found" }, { status: 404 });
+  }
+
+  let bucket: string | undefined;
+
+  // Signal any in-flight processing to stop before we remove the data
+  cancelMaterial(materialId);
+  try {
+    bucket = getS3Config().bucket;
+  } catch (e) {
+    console.warn("S3 not configured, skipping storage cleanup");
+  }
+
+  // Cleanup S3 storage if configured
+  if (bucket) {
+    try {
+      // The prefix for this material is usually learning-materials/{teacherId}/{classId}/{materialId}/
+      const prefix = `learning-materials/${teacher.id}/${classId}/${materialId}/`;
+      const keys = await listS3Objects(bucket, prefix);
+      if (keys.length > 0) {
+        await deleteS3Objects(bucket, keys);
+      }
+    } catch (e) {
+      console.error("Failed to delete S3 objects:", e);
+      // Continue anyway to delete the database records
+    }
+  }
+
+  // DB cascading should delete pages due to materialId foreign key if configured,
+  // but to be safe we can delete pages first or let Prisma handle it if cascade is on.
+  await prisma.materialPage.deleteMany({
+    where: { materialId },
+  });
+
+  await prisma.learningMaterial.delete({
+    where: { id: materialId },
+  });
+
+  return NextResponse.json({ success: true });
+}

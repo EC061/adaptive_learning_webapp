@@ -89,9 +89,11 @@ export async function POST(
     });
     
     // In a real app we'd trigger a background job here (e.g. SQS, Inngest, BullMQ).
-    // For this prototype, we could trigger a local fetch to a processing endpoint.
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/classes/${classId}/materials/${material.id}/process`, { method: "POST" }).catch(console.error);
-
+    // For this prototype, we'll invoke the background process directly to avoid network hairpin routing issues
+    // that cause local fetch requests to hang indefinitely.
+    import('@/lib/vlm-engine').then(({ processMaterial }) => {
+      processMaterial(material.id).catch(console.error);
+    });
     return NextResponse.json({ material: updated });
   } catch (e) {
     console.error("Failed to complete upload:", e);

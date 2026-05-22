@@ -68,7 +68,7 @@ export async function POST(req: Request) {
           content: "Please write a short paragraph testing the connection. Reply with at least 20 words.",
         },
       ],
-      max_completion_tokens: 200,
+      max_completion_tokens: 2000,
       temperature: 0,
       service_tier:
         !isLocal &&

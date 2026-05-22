@@ -65,15 +65,15 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "user",
-          content: "Reply with exactly one word: OK",
+          content: "Please write a short paragraph testing the connection. Reply with at least 20 words.",
         },
       ],
-      max_completion_tokens: 5,
+      max_completion_tokens: 200,
       temperature: 0,
       service_tier:
         !isLocal &&
-        provider.serviceTier &&
-        ["auto", "default", "flex"].includes(provider.serviceTier)
+          provider.serviceTier &&
+          ["auto", "default", "flex"].includes(provider.serviceTier)
           ? (provider.serviceTier as any)
           : undefined,
     });

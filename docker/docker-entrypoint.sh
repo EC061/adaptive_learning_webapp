@@ -10,6 +10,13 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
+# If launched as the background worker, skip migrations (web handles them)
+# and run the bundled worker script directly.
+if [ "${1:-}" = "worker" ]; then
+  echo "Starting background worker..."
+  exec node worker.js
+fi
+
 # Pre-migration: handle adding required columns to tables that already have rows.
 # prisma db push refuses to add a NOT NULL column without a default when rows exist.
 echo "Running pre-migration fixes..."

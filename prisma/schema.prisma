@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -55,7 +55,7 @@ model LearningMaterial {
   processedPages Int     @default(0)
   errorMessage   String?
   batchDescription  String?
-  batchKeyConcepts  String[]  @default([])
+  batchKeyConcepts  String  @default("[]")
 
   teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -217,6 +217,8 @@ model Question {
   quizAnswers QuizAnswer[]
 
   @@index([importId])
+  @@index([topicId])
+  @@index([subtopicId])
 }
 
 // status: "COMPLETED" | "FAILED"
@@ -233,7 +235,7 @@ model QuestionImport {
   importedCount Int      @default(0)
   skippedCount  Int      @default(0)
   errorCount    Int      @default(0)
-  errors        Json?
+  errors        String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -303,6 +305,9 @@ model QuizAttempt {
   class    Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   subtopic Subtopic     @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
   answers  QuizAnswer[]
+
+  @@index([studentId])
+  @@index([classId])
 }
 
 model QuizAnswer {
@@ -310,12 +315,14 @@ model QuizAnswer {
   quizAttemptId     String
   questionId        String
   selectedOptionId  String?
-  selectedOptionIds String[] @default([])
+  selectedOptionIds String   @default("[]")
   isCorrect         Boolean  @default(false)
 
   quizAttempt    QuizAttempt @relation(fields: [quizAttemptId], references: [id], onDelete: Cascade)
   question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   selectedOption Option?     @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@index([quizAttemptId])
 }
 
 // ─── AI Provider Configuration ────────────────────────────────────────────────

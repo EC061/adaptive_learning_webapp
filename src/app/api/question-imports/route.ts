@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         importedCount: 0,
         skippedCount: 0,
         errorCount: parsed.errors.length,
-        errors: serializeErrors(parsed.errors),
+        errors: JSON.stringify(serializeErrors(parsed.errors)),
       },
     });
 
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         importedCount,
         skippedCount,
         errorCount: errors.length,
-        errors: serializeErrors(errors),
+        errors: JSON.stringify(serializeErrors(errors)),
       },
     });
 

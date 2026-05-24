@@ -220,7 +220,7 @@ export async function processMaterial(materialId: string) {
       data: {
         processingStatus: "SUCCESS",
         batchDescription: "No pages were identified as core learning material.",
-        batchKeyConcepts: [],
+        batchKeyConcepts: "[]",
       },
     });
     return;
@@ -260,7 +260,7 @@ export async function processMaterial(materialId: string) {
         data: {
           processingStatus: "SUCCESS",
           batchDescription: parsed.description,
-          batchKeyConcepts: parsed.key_concept,
+          batchKeyConcepts: JSON.stringify(parsed.key_concept),
         },
       });
     }

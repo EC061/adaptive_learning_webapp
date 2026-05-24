@@ -71,13 +71,18 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
             {material.batchDescription || "No summary available."}
           </p>
           
-          {material.batchKeyConcepts.length > 0 && (
+          {(() => {
+            let concepts: string[] = [];
+            try {
+              concepts = JSON.parse(material.batchKeyConcepts);
+            } catch (e) {}
+            return concepts.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wider mb-3">
                 Key Concepts
               </h3>
               <div className="flex flex-wrap gap-2">
-                {material.batchKeyConcepts.map((concept, idx) => (
+                {concepts.map((concept, idx) => (
                   <span
                     key={idx}
                     className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium shadow-sm border border-blue-200"
@@ -87,7 +92,8 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
                 ))}
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
 

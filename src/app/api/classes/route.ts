@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
           firstName: s.firstName.trim(),
           lastName: s.lastName.trim(),
         })),
-        skipDuplicates: true,
       });
     }
 

@@ -1,5 +1,5 @@
-FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat openssl
+FROM node:20-slim AS base
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -24,8 +24,8 @@ RUN npx esbuild src/worker.ts --bundle --platform=node --target=node20 \
       --external:@prisma/client
 
 # ── Stage 3: Production runner ────────────────────────────────────────────────
-FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat openssl
+FROM node:20-slim AS runner
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 ARG APP_VERSION=0.0.0
@@ -41,8 +41,8 @@ ENV APP_RELEASE_DATE=${APP_RELEASE_DATE}
 LABEL org.opencontainers.image.version=${APP_VERSION}
 LABEL org.opencontainers.image.created=${APP_RELEASE_DATE}
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./

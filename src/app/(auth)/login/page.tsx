@@ -10,8 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 function LoginForm() {
   const { push, refresh } = useRouter();
-  const { get } = useSearchParams();
-  const callbackUrl = get("callbackUrl") || undefined;
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || undefined;
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

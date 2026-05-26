@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.0.16 - 2026-05-26
+
+- Updated Dockerfile base image and dependencies for improved build stability.
+- Added worker service configuration and standardized volume paths in Docker Compose (dev/prod).
+- Added honker-node to Next.js server external packages.
+- Removed obsolete LearningMaterial migration fixes (folder column and pre-migration cleanup).
+
+## v0.0.15 - 2026-05-24
+
+- Migrated to SQLite and introduced a honker-based background worker with concurrency optimizations.
+- Implemented database-backed AI configuration with admin dashboard controls.
+- Restructured learning materials flow with class-scoped routing and detail page viewing; added materials section to class detail page.
+- Added material deletion, job cancellation, and migration safeguards for existing LearningMaterial data.
+- Implemented a custom ReadableStream for Server-Sent Events in the chat API route.
+- Updated AI model schema constraints and switched to `max_completion_tokens` with expanded connection test prompts/limits.
+- Added lazy initialization for the OpenAI client to reduce resource usage.
+
 ## v0.0.14 - 2026-05-14
 
 - Added /admin-register to the list of public routes in proxy middleware.

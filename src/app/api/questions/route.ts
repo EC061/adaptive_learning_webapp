@@ -34,8 +34,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
-  const { text, topicId, subtopicId, difficultyLevel, answerMode, options } = await req.json();
+  const [teacher, { text, topicId, subtopicId, difficultyLevel, answerMode, options }] = await Promise.all([
+    prisma.teacher.findUnique({ where: { userId: session.user.id } }),
+    req.json(),
+  ]);
   const normalizedAnswerMode = answerMode === "MULTI_SELECT" ? "MULTI_SELECT" : "SINGLE_SELECT";
 
   if (!text?.trim() || !topicId || !subtopicId) {

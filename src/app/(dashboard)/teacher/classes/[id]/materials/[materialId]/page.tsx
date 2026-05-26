@@ -11,11 +11,12 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
     redirect("/login");
   }
 
-  const { id: classId, materialId } = await props.params;
-
-  const teacher = await prisma.teacher.findUnique({
-    where: { userId: session.user.id },
-  });
+  const [{ id: classId, materialId }, teacher] = await Promise.all([
+    props.params,
+    prisma.teacher.findUnique({
+      where: { userId: session.user.id },
+    }),
+  ]);
 
   if (!teacher) redirect("/login");
 
@@ -36,12 +37,12 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-x-4">
         <Link
           href={`/teacher/classes/${classId}/materials`}
           className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
+          <ArrowLeft className="size-5 text-gray-700" />
         </Link>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{material.title || material.originalName}</h1>
@@ -52,8 +53,8 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
       </div>
 
       {material.processingStatus === "FAILED" && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start space-x-4">
-          <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start gap-x-4">
+          <AlertCircle className="size-6 text-red-600 shrink-0 mt-0.5" />
           <div>
             <h2 className="text-lg font-semibold text-red-800">Processing Failed</h2>
             <p className="text-red-700 mt-1">{material.errorMessage}</p>
@@ -63,8 +64,8 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
 
       {material.processingStatus === "SUCCESS" && (
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <BookOpen className="w-6 h-6 text-blue-600" />
+          <div className="flex items-center gap-x-3 mb-4">
+            <BookOpen className="size-6 text-blue-600" />
             <h2 className="text-xl font-semibold text-blue-900">Document Summary</h2>
           </div>
           <p className="text-blue-800 text-lg leading-relaxed mb-6">
@@ -84,7 +85,7 @@ export default async function MaterialViewerPage(props: { params: Promise<{ id: 
               <div className="flex flex-wrap gap-2">
                 {concepts.map((concept, idx) => (
                   <span
-                    key={idx}
+                    key={concept}
                     className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium shadow-sm border border-blue-200"
                   >
                     {concept}

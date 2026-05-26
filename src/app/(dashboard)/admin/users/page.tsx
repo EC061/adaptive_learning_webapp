@@ -77,9 +77,9 @@ export default function AdminUsersPage() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "ADMIN": return <Shield className="w-4 h-4 text-purple-500" />;
-      case "TEACHER": return <Users className="w-4 h-4 text-blue-500" />;
-      default: return <GraduationCap className="w-4 h-4 text-green-500" />;
+      case "ADMIN": return <Shield className="size-4 text-purple-500" />;
+      case "TEACHER": return <Users className="size-4 text-blue-500" />;
+      default: return <GraduationCap className="size-4 text-green-500" />;
     }
   };
 
@@ -93,7 +93,7 @@ export default function AdminUsersPage() {
           </p>
         </div>
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             placeholder="Search users..."
             className="pl-9"
@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
             {loading ? (
               <tr>
                 <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
-                  Loading users...
+                  Loading users…
                 </td>
               </tr>
             ) : filteredUsers.length === 0 ? (
@@ -151,12 +151,12 @@ export default function AdminUsersPage() {
                       onClick={() => setDeleteUser(user)}
                       disabled={user.id === session?.user?.id}
                       className={cn(
-                        "text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8",
+                        "text-destructive hover:text-destructive hover:bg-destructive/10 size-8",
                         user.id === session?.user?.id && "opacity-50 cursor-not-allowed"
                       )}
                       title={user.id === session?.user?.id ? "Cannot delete yourself" : "Delete user"}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="size-4" />
                     </Button>
                   </td>
                 </tr>

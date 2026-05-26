@@ -10,7 +10,7 @@ import { Shield } from "lucide-react";
 import { PASSWORD_REQUIREMENTS, validatePassword } from "@/lib/account-validation";
 
 export default function AdminRegisterPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -23,7 +23,7 @@ export default function AdminRegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function updateFormField(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
@@ -52,7 +52,7 @@ export default function AdminRegisterPage() {
       if (!res.ok) {
         setError(data.error || "Registration failed.");
       } else {
-        router.push("/login?registered=1");
+        push("/login?registered=1");
       }
     } catch {
       setError("An unexpected error occurred.");
@@ -68,7 +68,7 @@ export default function AdminRegisterPage() {
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
+              <Shield className="size-5 text-primary" />
               <CardTitle className="text-2xl font-bold">Admin Registration</CardTitle>
             </div>
             <CardDescription>
@@ -90,7 +90,7 @@ export default function AdminRegisterPage() {
                     id="firstName"
                     name="firstName"
                     value={form.firstName}
-                    onChange={handleChange}
+                    onChange={updateFormField}
                     required
                   />
                 </div>
@@ -100,7 +100,7 @@ export default function AdminRegisterPage() {
                     id="lastName"
                     name="lastName"
                     value={form.lastName}
-                    onChange={handleChange}
+                    onChange={updateFormField}
                     required
                   />
                 </div>
@@ -112,7 +112,7 @@ export default function AdminRegisterPage() {
                   id="username"
                   name="username"
                   value={form.username}
-                  onChange={handleChange}
+                  onChange={updateFormField}
                   required
                   placeholder="e.g. jsmith"
                 />
@@ -125,7 +125,7 @@ export default function AdminRegisterPage() {
                   name="email"
                   type="email"
                   value={form.email}
-                  onChange={handleChange}
+                  onChange={updateFormField}
                   required
                   placeholder="admin@school.edu"
                 />
@@ -138,7 +138,7 @@ export default function AdminRegisterPage() {
                   name="password"
                   type="password"
                   value={form.password}
-                  onChange={handleChange}
+                  onChange={updateFormField}
                   required
                   placeholder="Create a strong password"
                 />
@@ -154,7 +154,7 @@ export default function AdminRegisterPage() {
                   name="confirmPassword"
                   type="password"
                   value={form.confirmPassword}
-                  onChange={handleChange}
+                  onChange={updateFormField}
                   required
                 />
               </div>
@@ -168,7 +168,7 @@ export default function AdminRegisterPage() {
                   name="adminToken"
                   type="password"
                   value={form.adminToken}
-                  onChange={handleChange}
+                  onChange={updateFormField}
                   required
                   placeholder="Enter the admin code"
                 />

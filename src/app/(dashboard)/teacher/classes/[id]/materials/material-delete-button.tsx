@@ -10,7 +10,7 @@ interface MaterialDeleteButtonProps {
 }
 
 export default function MaterialDeleteButton({ classId, materialId }: MaterialDeleteButtonProps) {
-  const router = useRouter();
+  const { refresh } = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -26,7 +26,7 @@ export default function MaterialDeleteButton({ classId, materialId }: MaterialDe
         throw new Error("Failed to delete material");
       }
 
-      router.refresh();
+      refresh();
     } catch (err) {
       console.error(err);
       alert("An error occurred while deleting the material.");
@@ -36,16 +36,16 @@ export default function MaterialDeleteButton({ classId, materialId }: MaterialDe
   };
 
   return (
-    <button
+    <button type="button"
       onClick={handleDelete}
       disabled={isDeleting}
-      className="ml-3 p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+      className="ml-3 p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
       title="Delete / Terminate Job"
     >
       {isDeleting ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="size-4 animate-spin" />
       ) : (
-        <Trash2 className="w-4 h-4" />
+        <Trash2 className="size-4" />
       )}
     </button>
   );

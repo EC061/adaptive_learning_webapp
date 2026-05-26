@@ -13,7 +13,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full size-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -41,16 +41,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar — hidden on md+ */}
         <header className="md:hidden sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-background border-b border-border">
-          <button
+          <button type="button"
             aria-label="Open navigation menu"
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="size-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+            <div className="size-7 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <BookOpen className="size-3.5 text-blue-400" />
             </div>
             <span className="font-bold text-sm text-foreground">AI4Talent</span>
           </div>

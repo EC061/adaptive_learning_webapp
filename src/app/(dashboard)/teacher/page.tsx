@@ -13,18 +13,17 @@ export default async function TeacherDashboard() {
   const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
   if (!teacher) redirect("/login");
 
-  const [classCount, topicCount, questionCount] = await Promise.all([
+  const [classCount, topicCount, questionCount, recentClasses] = await Promise.all([
     prisma.class.count({ where: { teacherId: teacher.id } }),
     prisma.topic.count(),
     prisma.question.count(),
+    prisma.class.findMany({
+      where: { teacherId: teacher.id },
+      include: { _count: { select: { enrollments: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
   ]);
-
-  const recentClasses = await prisma.class.findMany({
-    where: { teacherId: teacher.id },
-    include: { _count: { select: { enrollments: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -35,7 +34,7 @@ export default async function TeacherDashboard() {
         </div>
         <Button asChild className="shrink-0">
           <Link href="/teacher/classes/new">
-            <Plus className="w-4 h-4" /> New Class
+            <Plus className="size-4" /> New Class
           </Link>
         </Button>
       </div>
@@ -45,7 +44,7 @@ export default async function TeacherDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Classes</CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
+            <Users className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{classCount}</p>
@@ -54,7 +53,7 @@ export default async function TeacherDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Topics</CardTitle>
-            <BookOpen className="w-4 h-4 text-muted-foreground" />
+            <BookOpen className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{topicCount}</p>
@@ -63,7 +62,7 @@ export default async function TeacherDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Questions</CardTitle>
-            <FileQuestion className="w-4 h-4 text-muted-foreground" />
+            <FileQuestion className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{questionCount}</p>
@@ -82,11 +81,11 @@ export default async function TeacherDashboard() {
         {recentClasses.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <GraduationCap className="w-12 h-12 text-muted-foreground mb-4" />
+              <GraduationCap className="size-12 text-muted-foreground mb-4" />
               <p className="text-lg font-medium mb-2">No classes yet</p>
               <p className="text-muted-foreground text-sm mb-4">Create your first class to get started.</p>
               <Button asChild>
-                <Link href="/teacher/classes/new"><Plus className="w-4 h-4" /> Create Class</Link>
+                <Link href="/teacher/classes/new"><Plus className="size-4" /> Create Class</Link>
               </Button>
             </CardContent>
           </Card>

@@ -12,11 +12,12 @@ export default async function ClassMaterialsPage(props: { params: Promise<{ id: 
     redirect("/login");
   }
 
-  const { id: classId } = await props.params;
-
-  const teacher = await prisma.teacher.findUnique({
-    where: { userId: session.user.id },
-  });
+  const [{ id: classId }, teacher] = await Promise.all([
+    props.params,
+    prisma.teacher.findUnique({
+      where: { userId: session.user.id },
+    }),
+  ]);
 
   if (!teacher) redirect("/login");
 
@@ -64,13 +65,13 @@ export default async function ClassMaterialsPage(props: { params: Promise<{ id: 
 
             return (
               <div key={mat.id} className="bg-white border rounded-lg p-5 flex items-center justify-between shadow-sm">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-x-4">
                   <div className="p-3 bg-blue-50 rounded-full">
-                    <FileText className="w-6 h-6 text-blue-600" />
+                    <FileText className="size-6 text-blue-600" />
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{mat.title || mat.originalName}</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+                    <div className="flex items-center gap-x-2 text-sm text-gray-500 mt-1">
                       <span>{(mat.sizeBytes / 1024 / 1024).toFixed(2)} MB</span>
                       <span>•</span>
                       <span>{mat.totalPages} Pages</span>
@@ -85,18 +86,18 @@ export default async function ClassMaterialsPage(props: { params: Promise<{ id: 
                 <div className="flex flex-col items-end w-64">
                   {mat.processingStatus === "SUCCESS" && (
                     <div className="flex items-center text-green-600 font-medium text-sm">
-                      <CheckCircle className="w-4 h-4 mr-1" /> Ready
+                      <CheckCircle className="size-4 mr-1" /> Ready
                     </div>
                   )}
                   {mat.processingStatus === "FAILED" && (
                     <div className="flex items-center text-red-600 font-medium text-sm" title={mat.errorMessage || "Error"}>
-                      <AlertTriangle className="w-4 h-4 mr-1" /> Processing Failed
+                      <AlertTriangle className="size-4 mr-1" /> Processing Failed
                     </div>
                   )}
                   {isProcessing && mat.uploadStatus === "READY" && (
                     <div className="w-full">
                       <div className="flex justify-between text-xs text-blue-600 mb-1 font-medium">
-                        <span className="flex items-center"><Clock className="w-3 h-3 mr-1" /> Analyzing...</span>
+                        <span className="flex items-center"><Clock className="size-3 mr-1" /> Analyzing…</span>
                         <span>{Math.round(progress)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">

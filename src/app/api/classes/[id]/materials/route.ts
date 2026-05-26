@@ -18,8 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: classId } = await params;
-  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
+  const [{ id: classId }, teacher] = await Promise.all([
+    params,
+    prisma.teacher.findUnique({ where: { userId: session.user.id } }),
+  ]);
   if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
   const cls = await prisma.class.findFirst({
@@ -59,8 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: classId } = await params;
-  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
+  const [{ id: classId }, teacher] = await Promise.all([
+    params,
+    prisma.teacher.findUnique({ where: { userId: session.user.id } }),
+  ]);
   if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
   const cls = await prisma.class.findFirst({

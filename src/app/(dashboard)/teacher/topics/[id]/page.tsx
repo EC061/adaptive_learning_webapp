@@ -69,17 +69,17 @@ export default function TopicModulesPage() {
     setSubtopics((prev) => prev.filter((s) => s.id !== subtopicId));
   }
 
-  if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-6 text-muted-foreground">Loading…</div>;
 
   return (
     <div className="p-4 md:p-6 space-y-6">
       <Button variant="ghost" size="sm" asChild>
-        <Link href="/teacher/topics"><ArrowLeft className="w-4 h-4" /> Topics</Link>
+        <Link href="/teacher/topics"><ArrowLeft className="size-4" /> Topics</Link>
       </Button>
 
       <div>
         <h1 className="text-2xl font-bold">{topicName}</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage subtopic modules — each module has a set of quiz questions.</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage subtopic modules: each module has a set of quiz questions.</p>
       </div>
 
       {msg && <div className="p-3 rounded-md bg-primary/10 text-primary text-sm">{msg}</div>}
@@ -90,7 +90,7 @@ export default function TopicModulesPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Input placeholder="Module name (e.g. Nature of temperature)" value={newName}
               onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createSubtopic()} className="flex-1" />
-            <Button onClick={createSubtopic} disabled={!newName.trim()} className="shrink-0"><Plus className="w-4 h-4" /> Add</Button>
+            <Button onClick={createSubtopic} disabled={!newName.trim()} className="shrink-0"><Plus className="size-4" /> Add</Button>
           </div>
         </CardContent>
       </Card>
@@ -99,7 +99,7 @@ export default function TopicModulesPage() {
         {subtopics.length === 0 && (
           <Card>
             <CardContent className="text-center py-10 text-muted-foreground">
-              <Layers className="w-8 h-8 mx-auto mb-2" />
+              <Layers className="size-8 mx-auto mb-2" />
               <p>No modules yet. Add one above.</p>
             </CardContent>
           </Card>
@@ -112,8 +112,8 @@ export default function TopicModulesPage() {
                 {editingId === s.id ? (
                   <div className="flex items-center gap-2 flex-1">
                     <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" autoFocus />
-                    <Button size="sm" variant="ghost" onClick={() => saveEdit(s.id)}><Check className="w-3 h-3" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X className="w-3 h-3" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => saveEdit(s.id)}><Check className="size-3" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X className="size-3" /></Button>
                   </div>
                 ) : (
                   <div className="flex-1">
@@ -124,13 +124,13 @@ export default function TopicModulesPage() {
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button size="sm" variant="ghost" onClick={() => { setEditingId(s.id); setEditName(s.name); }}>
-                  <Pencil className="w-3 h-3" />
+                  <Pencil className="size-3" />
                 </Button>
                 <Button size="sm" variant="ghost" asChild>
                   <Link href={`/teacher/questions?subtopicId=${s.id}&topicId=${topicId}`}>Questions</Link>
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => deleteSubtopic(s.id)}>
-                  <Trash2 className="w-3 h-3 text-destructive" />
+                  <Trash2 className="size-3 text-destructive" />
                 </Button>
               </div>
             </CardContent>

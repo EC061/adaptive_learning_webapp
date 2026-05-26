@@ -19,8 +19,10 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: classId, materialId } = await params;
-  const teacher = await prisma.teacher.findUnique({ where: { userId: session.user.id } });
+  const [{ id: classId, materialId }, teacher] = await Promise.all([
+    params,
+    prisma.teacher.findUnique({ where: { userId: session.user.id } }),
+  ]);
   if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
   // Verify class ownership

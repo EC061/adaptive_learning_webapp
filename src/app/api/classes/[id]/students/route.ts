@@ -22,16 +22,17 @@ export async function GET(
   });
   if (!cls) return NextResponse.json({ error: "Class not found" }, { status: 404 });
 
-  const students = await prisma.classStudentList.findMany({
-    where: { classId: id },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-  });
-
-  // Cross-reference with enrollments to get enrollment status
-  const enrollments = await prisma.classEnrollment.findMany({
-    where: { classId: id },
-    include: { student: { include: { user: true } } },
-  });
+  const [students, enrollments] = await Promise.all([
+    prisma.classStudentList.findMany({
+      where: { classId: id },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    // Cross-reference with enrollments to get enrollment status
+    prisma.classEnrollment.findMany({
+      where: { classId: id },
+      include: { student: { include: { user: true } } },
+    }),
+  ]);
 
   // Build a lookup map: orgDefinedId -> enrollment info
   // Match roster entries to enrollments by looking up users who registered with matching names

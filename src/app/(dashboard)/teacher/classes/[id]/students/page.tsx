@@ -159,7 +159,7 @@ export default function StudentsPage() {
   if (loading) {
     return (
       <div className="p-4 md:p-6 flex items-center justify-center min-h-[300px]">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="size-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -168,14 +168,14 @@ export default function StudentsPage() {
     <div className="p-4 md:p-6 space-y-6">
       <Button variant="ghost" size="sm" asChild>
         <Link href={`/teacher/classes/${id}`}>
-          <ArrowLeft className="w-4 h-4" /> Back to {className || "class"}
+          <ArrowLeft className="size-4" /> Back to {className || "class"}
         </Link>
       </Button>
 
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6" /> Class Roster
+            <Users className="size-6" /> Class Roster
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage the full student roster for {className || "this class"}
@@ -185,7 +185,7 @@ export default function StudentsPage() {
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
-              <Plus className="w-4 h-4 mr-1" /> Add Student
+              <Plus className="size-4 mr-1" /> Add Student
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -251,7 +251,7 @@ export default function StudentsPage() {
                 <p className="text-sm text-muted-foreground">Total Roster</p>
                 <p className="text-2xl font-bold">{rosterCount}</p>
               </div>
-              <Users className={`w-8 h-8 ${filter === "all" ? "text-primary" : "text-muted-foreground/40"}`} />
+              <Users className={`size-8 ${filter === "all" ? "text-primary" : "text-muted-foreground/40"}`} />
             </div>
           </CardContent>
         </Card>
@@ -262,7 +262,7 @@ export default function StudentsPage() {
                 <p className="text-sm text-muted-foreground">Enrolled</p>
                 <p className="text-2xl font-bold">{enrolledCount}</p>
               </div>
-              <UserCheck className={`w-8 h-8 ${filter === "enrolled" ? "text-green-500" : "text-muted-foreground/40"}`} />
+              <UserCheck className={`size-8 ${filter === "enrolled" ? "text-green-500" : "text-muted-foreground/40"}`} />
             </div>
           </CardContent>
         </Card>
@@ -273,7 +273,7 @@ export default function StudentsPage() {
                 <p className="text-sm text-muted-foreground">Not Registered</p>
                 <p className="text-2xl font-bold">{rosterCount - registeredCount}</p>
               </div>
-              <UserX className={`w-8 h-8 ${filter === "not_registered" ? "text-amber-500" : "text-muted-foreground/40"}`} />
+              <UserX className={`size-8 ${filter === "not_registered" ? "text-amber-500" : "text-muted-foreground/40"}`} />
             </div>
           </CardContent>
         </Card>
@@ -283,7 +283,7 @@ export default function StudentsPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or 81 number..."
                 value={search}
@@ -321,7 +321,7 @@ export default function StudentsPage() {
             <div className="divide-y">
               {filtered.map((s) => (
                 <div key={s.id} className="flex items-center gap-3 py-3 flex-wrap">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm shrink-0">
+                  <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm shrink-0">
                     {s.firstName[0]}
                     {s.lastName[0]}
                   </div>
@@ -337,22 +337,22 @@ export default function StudentsPage() {
                     {/* Registration status */}
                     {s.isRegistered ? (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                        <CheckCircle className="w-3 h-3" /> Registered
+                        <CheckCircle className="size-3" /> Registered
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                        <Clock className="w-3 h-3" /> Not registered
+                        <Clock className="size-3" /> Not registered
                       </span>
                     )}
 
                     {/* Enrollment status */}
                     {s.isEnrolled ? (
                       <Badge variant="success" className="text-xs">
-                        <UserCheck className="w-3 h-3 mr-1" /> Enrolled
+                        <UserCheck className="size-3 mr-1" /> Enrolled
                       </Badge>
                     ) : s.isRegistered ? (
                       <Badge variant="secondary" className="text-xs">
-                        <UserX className="w-3 h-3 mr-1" /> Not Enrolled
+                        <UserX className="size-3 mr-1" /> Not Enrolled
                       </Badge>
                     ) : null}
 
@@ -381,9 +381,9 @@ export default function StudentsPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => setDeleteId(s.id)}
-                        className="text-muted-foreground hover:text-destructive h-7 w-7 p-0"
+                        className="text-muted-foreground hover:text-destructive size-7 p-0"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="size-4" />
                       </Button>
                     )}
                   </div>

@@ -14,25 +14,26 @@ export default async function StudentDashboard() {
   const student = await prisma.student.findUnique({ where: { userId: session.user.id } });
   if (!student) redirect("/login");
 
-  const enrollments = await prisma.classEnrollment.findMany({
-    where: { studentId: student.id },
-    include: {
-      class: {
-        include: {
-          classTopics: {
-            where: { published: true },
-            include: { topic: { include: { subtopics: true } } },
+  const [enrollments, completedCount] = await Promise.all([
+    prisma.classEnrollment.findMany({
+      where: { studentId: student.id },
+      include: {
+        class: {
+          include: {
+            classTopics: {
+              where: { published: true },
+              include: { topic: { include: { subtopics: true } } },
+            },
           },
         },
       },
-    },
-    orderBy: { joinedAt: "desc" },
-  });
-
-  // Get overall progress counts
-  const completedCount = await prisma.moduleProgress.count({
-    where: { studentId: student.id, status: "COMPLETED" },
-  });
+      orderBy: { joinedAt: "desc" },
+    }),
+    // Get overall progress counts
+    prisma.moduleProgress.count({
+      where: { studentId: student.id, status: "COMPLETED" },
+    }),
+  ]);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -63,7 +64,7 @@ export default async function StudentDashboard() {
         {enrollments.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center py-12 text-center">
-              <GraduationCap className="w-12 h-12 text-muted-foreground mb-3" />
+              <GraduationCap className="size-12 text-muted-foreground mb-3" />
               <p className="text-lg font-medium mb-1">No classes yet</p>
               <p className="text-muted-foreground text-sm">Ask your teacher for an invitation link to join a class.</p>
             </CardContent>
@@ -79,7 +80,7 @@ export default async function StudentDashboard() {
                       <h3 className="text-lg font-semibold">{e.class.name}</h3>
                       <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <BookOpen className="w-3 h-3" />
+                          <BookOpen className="size-3" />
                           {e.class.classTopics.length} topic{e.class.classTopics.length !== 1 ? "s" : ""}
                         </span>
                         <span>{totalModules} module{totalModules !== 1 ? "s" : ""}</span>
@@ -90,7 +91,7 @@ export default async function StudentDashboard() {
                     </div>
                     <Button asChild className="shrink-0">
                       <Link href={`/student/classes/${e.classId}`}>
-                        Continue <ChevronRight className="w-4 h-4" />
+                        Continue <ChevronRight className="size-4" />
                       </Link>
                     </Button>
                   </CardContent>

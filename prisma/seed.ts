@@ -6,20 +6,22 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Wiping database for clean seed...");
 
-  await prisma.quizAnswer.deleteMany();
-  await prisma.quizAttempt.deleteMany();
-  await prisma.moduleProgress.deleteMany();
-  await prisma.classTopic.deleteMany();
-  await prisma.classEnrollment.deleteMany();
-  await prisma.invitation.deleteMany();
-  await prisma.option.deleteMany();
-  await prisma.question.deleteMany();
-  await prisma.subtopic.deleteMany();
-  await prisma.topic.deleteMany();
-  await prisma.class.deleteMany();
-  await prisma.student.deleteMany();
-  await prisma.teacher.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.$transaction([
+    prisma.quizAnswer.deleteMany(),
+    prisma.quizAttempt.deleteMany(),
+    prisma.moduleProgress.deleteMany(),
+    prisma.classTopic.deleteMany(),
+    prisma.classEnrollment.deleteMany(),
+    prisma.invitation.deleteMany(),
+    prisma.option.deleteMany(),
+    prisma.question.deleteMany(),
+    prisma.subtopic.deleteMany(),
+    prisma.topic.deleteMany(),
+    prisma.class.deleteMany(),
+    prisma.student.deleteMany(),
+    prisma.teacher.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 
   console.log("Database wiped. Seeding fresh data...");
 
@@ -29,24 +31,28 @@ async function main() {
 
   console.log(`Topic: ${topic.name}`);
 
-  for (const subtopicData of prebuiltSubtopics) {
-    const subtopic = await prisma.subtopic.create({
-      data: { ...subtopicData, topicId: topic.id },
-    });
-    console.log(`  Subtopic: ${subtopic.name}`);
-  }
+  await Promise.all(
+    prebuiltSubtopics.map(async (subtopicData) => {
+      const subtopic = await prisma.subtopic.create({
+        data: { ...subtopicData, topicId: topic.id },
+      });
+      console.log(`  Subtopic: ${subtopic.name}`);
+    })
+  );
 
-  for (const questionData of prebuiltQuestions) {
-    await prisma.question.create({
-      data: {
-        text: questionData.text,
-        topicId: topic.id,
-        subtopicId: questionData.subtopicId,
-        difficultyLevel: questionData.difficulty,
-        options: { create: questionData.options },
-      },
-    });
-  }
+  await Promise.all(
+    prebuiltQuestions.map((questionData) =>
+      prisma.question.create({
+        data: {
+          text: questionData.text,
+          topicId: topic.id,
+          subtopicId: questionData.subtopicId,
+          difficultyLevel: questionData.difficulty,
+          options: { create: questionData.options },
+        },
+      })
+    )
+  );
 
   console.log(`Seeded ${prebuiltQuestions.length} questions`);
   console.log("\nSeed complete!");

@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
             <Card key={i} className="animate-pulse">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="h-4 w-24 bg-muted rounded"></div>
-                <div className="h-4 w-4 bg-muted rounded"></div>
+                <div className="size-4 bg-muted rounded"></div>
               </CardHeader>
               <CardContent>
                 <div className="h-8 w-16 bg-muted rounded mt-2"></div>
@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Students
               </CardTitle>
-              <GraduationCap className="w-4 h-4 text-muted-foreground" />
+              <GraduationCap className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.students}</div>
@@ -111,7 +111,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Teachers
               </CardTitle>
-              <Users className="w-4 h-4 text-muted-foreground" />
+              <Users className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.teachers}</div>
@@ -122,7 +122,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Admins
               </CardTitle>
-              <Shield className="w-4 h-4 text-muted-foreground" />
+              <Shield className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.admins}</div>
@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Classes
               </CardTitle>
-              <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+              <LayoutDashboard className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.classes}</div>
@@ -175,9 +175,9 @@ export default function AdminDashboardPage() {
                       <span className="text-xs text-gray-400">{mat.class?.name}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {mat.processingStatus === "SUCCESS" && <span className="inline-flex items-center text-green-600"><CheckCircle className="w-4 h-4 mr-1" /> Success</span>}
-                      {mat.processingStatus === "FAILED" && <span className="inline-flex items-center text-red-600" title={mat.errorMessage}><AlertTriangle className="w-4 h-4 mr-1" /> Failed</span>}
-                      {mat.processingStatus === "PROCESSING" && <span className="inline-flex items-center text-blue-600"><RefreshCw className="w-4 h-4 mr-1 animate-spin" /> Processing</span>}
+                      {mat.processingStatus === "SUCCESS" && <span className="inline-flex items-center text-green-600"><CheckCircle className="size-4 mr-1" /> Success</span>}
+                      {mat.processingStatus === "FAILED" && <span className="inline-flex items-center text-red-600" title={mat.errorMessage}><AlertTriangle className="size-4 mr-1" /> Failed</span>}
+                      {mat.processingStatus === "PROCESSING" && <span className="inline-flex items-center text-blue-600"><RefreshCw className="size-4 mr-1 animate-spin" /> Processing</span>}
                       {mat.processingStatus === "IDLE" && <span className="inline-flex items-center text-gray-500">Idle</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -185,12 +185,12 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {mat.processingStatus === "FAILED" && (
-                        <button onClick={() => handleRetry(mat.id)} className="text-blue-600 hover:text-blue-900 mr-4">
+                        <button type="button" onClick={() => handleRetry(mat.id)} className="text-blue-600 hover:text-blue-900 mr-4">
                           Retry
                         </button>
                       )}
-                      <button onClick={() => handleDelete(mat.id)} className="text-red-600 hover:text-red-900 flex items-center justify-end w-full">
-                        <Trash2 className="w-4 h-4" />
+                      <button type="button" onClick={() => handleDelete(mat.id)} className="text-red-600 hover:text-red-900 flex items-center justify-end w-full">
+                        <Trash2 className="size-4" />
                       </button>
                     </td>
                   </tr>

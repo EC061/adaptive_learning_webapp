@@ -35,8 +35,8 @@ export default function PageViewer({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-        <Loader2 className="w-8 h-8 animate-spin mb-2 text-blue-500" />
-        <span className="text-sm">Loading image...</span>
+        <Loader2 className="size-8 animate-spin mb-2 text-blue-500" />
+        <span className="text-sm">Loading image…</span>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function PageViewer({
   if (error || !imageUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-        <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+        <ImageIcon className="size-10 mb-2 opacity-50" />
         <span className="text-sm">Image unavailable</span>
       </div>
     );

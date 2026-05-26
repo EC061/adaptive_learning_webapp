@@ -27,7 +27,7 @@ interface LookupResult {
 
 function InviteContent() {
   const { token } = useParams<{ token: string }>();
-  const router = useRouter();
+  const { push } = useRouter();
   const { data: session, status } = useSession();
   const [info, setInfo] = useState<InviteInfo | null>(null);
   const [error, setError] = useState("");
@@ -95,7 +95,7 @@ function InviteContent() {
       if (res.ok) {
         setSuccessName({ firstName: data.firstName, lastName: data.lastName });
         setSuccess(true);
-        setTimeout(() => router.push(`/student/classes/${data.classId}`), 2000);
+        setTimeout(() => push(`/student/classes/${data.classId}`), 2000);
       } else {
         setError(data.error);
       }
@@ -139,7 +139,7 @@ function InviteContent() {
         });
         setSuccessName({ firstName: data.firstName, lastName: data.lastName });
         setSuccess(true);
-        setTimeout(() => router.push(`/student/classes/${data.classId}`), 2000);
+        setTimeout(() => push(`/student/classes/${data.classId}`), 2000);
       } else {
         setError(data.error);
       }
@@ -151,7 +151,7 @@ function InviteContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -161,26 +161,26 @@ function InviteContent() {
       <Card className="w-full max-w-md">
         {error && !info ? (
           <CardContent className="flex flex-col items-center py-10 text-center">
-            <XCircle className="w-12 h-12 text-destructive mb-3" />
+            <XCircle className="size-12 text-destructive mb-3" />
             <p className="font-semibold text-lg mb-1">Invalid Invitation</p>
             <p className="text-muted-foreground text-sm mb-4">{error}</p>
             <Button asChild><Link href="/login">Go to Login</Link></Button>
           </CardContent>
         ) : success ? (
           <CardContent className="flex flex-col items-center py-10 text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
+            <CheckCircle className="size-12 text-green-500 mb-3" />
             <p className="font-semibold text-lg">Sign up success!</p>
             <p className="text-muted-foreground text-sm mt-1">
               Welcome, {successName.firstName} {successName.lastName}
             </p>
-            <p className="text-muted-foreground text-xs mt-2">Redirecting to your class...</p>
+            <p className="text-muted-foreground text-xs mt-2">Redirecting to your class…</p>
           </CardContent>
         ) : (
           <>
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5 text-primary" />
+                <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <GraduationCap className="size-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle>Class Invitation</CardTitle>
@@ -219,7 +219,7 @@ function InviteContent() {
                     onClick={handleVerify}
                     disabled={lookupLoading || !orgDefinedId.trim()}
                   >
-                    {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+                    {lookupLoading ? <Loader2 className="size-4 animate-spin" /> : "Verify"}
                   </Button>
                 </div>
 
@@ -232,7 +232,7 @@ function InviteContent() {
 
                 {lookupResult?.found && (
                   <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-3">
-                    <User className="w-5 h-5 text-green-600 shrink-0" />
+                    <User className="size-5 text-green-600 shrink-0" />
                     <div>
                       <p className="font-semibold text-green-600">Identity verified</p>
                       <p className="text-sm">

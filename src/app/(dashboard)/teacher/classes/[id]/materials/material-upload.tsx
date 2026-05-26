@@ -15,7 +15,7 @@ interface MaterialUploadProps {
 }
 
 export default function MaterialUploadForm({ classId }: MaterialUploadProps) {
-  const router = useRouter();
+  const { refresh } = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
@@ -168,7 +168,7 @@ export default function MaterialUploadForm({ classId }: MaterialUploadProps) {
         // Let user see 100% for a moment before refreshing list
         setTimeout(() => {
           setIsUploading(false);
-          router.refresh();
+          refresh();
         }, 1000);
 
       } catch (err: any) {
@@ -185,14 +185,15 @@ export default function MaterialUploadForm({ classId }: MaterialUploadProps) {
       <input
         type="file"
         accept="application/pdf"
+        aria-label="Upload PDF material"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         onChange={handleFileChange}
         disabled={isUploading}
       />
-      <div className="flex flex-col items-center space-y-4">
+      <div className="flex flex-col items-center gap-y-4">
         {isUploading ? (
           <>
-            <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+            <Loader2 className="size-10 text-blue-500 animate-spin" />
             <div className="text-sm font-medium text-gray-700">{statusText}</div>
             <div className="w-full max-w-xs bg-gray-200 rounded-full h-2.5">
               <div
@@ -203,7 +204,7 @@ export default function MaterialUploadForm({ classId }: MaterialUploadProps) {
           </>
         ) : (
           <>
-            <UploadCloud className="w-10 h-10 text-gray-400" />
+            <UploadCloud className="size-10 text-gray-400" />
             <div>
               <p className="text-base font-semibold text-gray-700">
                 Click or drag PDF to upload

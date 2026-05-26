@@ -112,7 +112,7 @@ export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [hasAutoReviewTriggered, setHasAutoReviewTriggered] = useState(false);
+  const hasAutoReviewTriggeredRef = useRef(false);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const [panelState, setPanelState] = useState<PanelState | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -145,14 +145,14 @@ export default function Chatbot() {
   }, []);
 
   useEffect(() => {
-    if (!isOpen || hasAutoReviewTriggered) return;
+    if (!isOpen || hasAutoReviewTriggeredRef.current) return;
 
-    setHasAutoReviewTriggered(true);
+    hasAutoReviewTriggeredRef.current = true;
     void sendRequest({
       messages: getInitialMessages(),
       mode: "quiz-review",
     });
-  }, [hasAutoReviewTriggered, isOpen]);
+  }, [isOpen]);
 
   const cancelActiveRequest = () => {
     activeRequestIdRef.current += 1;
@@ -169,7 +169,7 @@ export default function Chatbot() {
 
   const handleClose = () => {
     resetConversation();
-    setHasAutoReviewTriggered(false);
+    hasAutoReviewTriggeredRef.current = false;
     setIsOpen(false);
   };
 
@@ -398,7 +398,7 @@ export default function Chatbot() {
           enableResizing={{ bottomRight: true }}
           resizeHandleComponent={{
             bottomRight: (
-              <div className="h-4 w-4 cursor-se-resize rounded-tl-md border-l border-t border-gray-300 bg-white/80 dark:border-gray-600 dark:bg-gray-800/80" />
+              <div className="size-4 cursor-se-resize rounded-tl-md border-l border-t border-gray-300 bg-white/80 dark:border-gray-600 dark:bg-gray-800/80" />
             ),
           }}
           onDragStop={(_event, data) => {
@@ -415,7 +415,7 @@ export default function Chatbot() {
         >
           <div className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
             <div className="chatbot-drag-handle flex cursor-move select-none items-center justify-between bg-blue-600 px-4 py-3 text-white touch-none">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 <MessageCircle size={20} />
                 <h3 className="text-sm font-semibold">AI Assistant</h3>
               </div>
@@ -444,7 +444,7 @@ export default function Chatbot() {
             <div className="chatbot-no-drag flex-1 space-y-4 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-950">
               {messages.map((message, index) => (
                 <div
-                  key={index}
+                  key={`${index}-${message.role}-${message.content.substring(0, 20)}`}
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
@@ -464,14 +464,14 @@ export default function Chatbot() {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="flex items-center space-x-1 rounded-2xl rounded-tl-sm border border-gray-100 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400"></div>
+                  <div className="flex items-center gap-x-1 rounded-2xl rounded-tl-sm border border-gray-100 bg-white px-4 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <div className="size-2 rounded-full bg-gray-400 animate-pulse"></div>
                     <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      className="size-2 rounded-full bg-gray-400 animate-pulse"
                       style={{ animationDelay: "0.2s" }}
                     ></div>
                     <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      className="size-2 rounded-full bg-gray-400 animate-pulse"
                       style={{ animationDelay: "0.4s" }}
                     ></div>
                   </div>
@@ -486,7 +486,7 @@ export default function Chatbot() {
                   e.preventDefault();
                   handleSend();
                 }}
-                className="flex items-center space-x-2"
+                className="flex items-center gap-x-2"
               >
                 <input
                   type="text"
@@ -495,6 +495,7 @@ export default function Chatbot() {
                   placeholder="Type your message..."
                   className="flex-1 rounded-full border border-gray-300 bg-gray-50 p-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   disabled={isLoading}
+                  aria-label="Chat message"
                 />
                 <button
                   type={isLoading ? "button" : "submit"}
@@ -515,7 +516,7 @@ export default function Chatbot() {
         </Rnd>
       ) : (
         <div className="pointer-events-auto absolute bottom-4 right-4">
-          <button
+          <button type="button"
             onClick={() => setIsOpen(true)}
             className="group flex items-center justify-center rounded-full bg-blue-600 p-4 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-700 hover:shadow-xl"
             aria-label="Open chat"

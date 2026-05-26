@@ -81,7 +81,7 @@ export default function ClassesPage() {
   if (loading) {
     return (
       <div className="p-4 md:p-6 flex items-center justify-center min-h-[300px]">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="size-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -94,17 +94,17 @@ export default function ClassesPage() {
           <p className="text-muted-foreground mt-1">{classes.length} class{classes.length !== 1 ? "es" : ""}</p>
         </div>
         <Button asChild className="shrink-0">
-          <Link href="/teacher/classes/new"><Plus className="w-4 h-4" /> New Class</Link>
+          <Link href="/teacher/classes/new"><Plus className="size-4" /> New Class</Link>
         </Button>
       </div>
 
       {classes.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Users className="w-12 h-12 text-muted-foreground mb-4" />
+            <Users className="size-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-2">No classes yet</p>
             <p className="text-muted-foreground text-sm mb-4">Create your first class and invite students.</p>
-            <Button asChild><Link href="/teacher/classes/new"><Plus className="w-4 h-4" /> Create Class</Link></Button>
+            <Button asChild><Link href="/teacher/classes/new"><Plus className="size-4" /> Create Class</Link></Button>
           </CardContent>
         </Card>
       ) : (
@@ -116,8 +116,8 @@ export default function ClassesPage() {
                   <h2 className="text-lg font-semibold">{cls.name}</h2>
                   {cls.description && <p className="text-sm text-muted-foreground">{cls.description}</p>}
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground pt-1">
-                    <span className="flex items-center gap-1"><Users className="w-3 h-3" />{cls._count.enrollments} students</span>
-                    <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{cls._count.classTopics} topics</span>
+                    <span className="flex items-center gap-1"><Users className="size-3" />{cls._count.enrollments} students</span>
+                    <span className="flex items-center gap-1"><BookOpen className="size-3" />{cls._count.classTopics} topics</span>
                     <span>Created {formatDate(cls.createdAt)}</span>
                   </div>
                 </div>
@@ -135,9 +135,9 @@ export default function ClassesPage() {
                       e.preventDefault();
                       setDeleteTarget(cls);
                     }}
-                    className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                    className="text-muted-foreground hover:text-destructive size-8 p-0"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
               </CardContent>

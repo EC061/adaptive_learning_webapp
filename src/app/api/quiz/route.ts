@@ -123,20 +123,24 @@ export async function PATCH(req: NextRequest) {
     });
   }
 
-  await prisma.quizAnswer.createMany({ data: answerRecords });
-
   const score = answers.length > 0 ? (correct / answers.length) * 100 : 0;
 
-  await prisma.quizAttempt.update({
-    where: { id: attemptId },
-    data: { score, completedAt: new Date() },
-  });
+  const [_, __, existing, questionsWithAnswers] = await Promise.all([
+    prisma.quizAnswer.createMany({ data: answerRecords }),
+    prisma.quizAttempt.update({
+      where: { id: attemptId },
+      data: { score, completedAt: new Date() },
+    }),
+    prisma.moduleProgress.findUnique({
+      where: { studentId_classId_subtopicId: { studentId: student.id, classId: attempt.classId, subtopicId: attempt.subtopicId } },
+    }),
+    prisma.question.findMany({
+      where: { id: { in: answers.map((a: { questionId: string }) => a.questionId) } },
+      include: { options: true },
+    })
+  ]);
 
   // Update ModuleProgress: COMPLETED + bestScore
-  const existing = await prisma.moduleProgress.findUnique({
-    where: { studentId_classId_subtopicId: { studentId: student.id, classId: attempt.classId, subtopicId: attempt.subtopicId } },
-  });
-
   await prisma.moduleProgress.upsert({
     where: { studentId_classId_subtopicId: { studentId: student.id, classId: attempt.classId, subtopicId: attempt.subtopicId } },
     update: {
@@ -150,12 +154,6 @@ export async function PATCH(req: NextRequest) {
       status: "COMPLETED",
       bestScore: score,
     },
-  });
-
-  // Return results with correct answers
-  const questionsWithAnswers = await prisma.question.findMany({
-    where: { id: { in: answers.map((a: { questionId: string }) => a.questionId) } },
-    include: { options: true },
   });
 
   return NextResponse.json({

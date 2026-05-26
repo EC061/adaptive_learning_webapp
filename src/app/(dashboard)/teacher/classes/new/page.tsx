@@ -37,7 +37,7 @@ function parseCSV(text: string): ParsedStudent[] {
 }
 
 export default function NewClassPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -96,7 +96,7 @@ export default function NewClassPage() {
       if (!res.ok) {
         setError(data.error || "Failed to create class.");
       } else {
-        router.push(`/teacher/classes/${data.id}`);
+        push(`/teacher/classes/${data.id}`);
       }
     } catch {
       setError("An unexpected error occurred.");
@@ -109,7 +109,7 @@ export default function NewClassPage() {
     <div className="p-4 md:p-6 max-w-2xl">
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/teacher/classes"><ArrowLeft className="w-4 h-4" /> Back to classes</Link>
+          <Link href="/teacher/classes"><ArrowLeft className="size-4" /> Back to classes</Link>
         </Button>
       </div>
       <Card>
@@ -139,28 +139,29 @@ export default function NewClassPage() {
                   htmlFor="csv-upload"
                   className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
                 >
-                  <Upload className="w-8 h-8 text-muted-foreground" />
+                  <Upload className="size-8 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Click to upload CSV file</span>
                   <input
                     ref={fileRef}
                     id="csv-upload"
                     type="file"
                     accept=".csv"
+                    aria-label="Upload class list CSV"
                     onChange={handleFileChange}
                     className="hidden"
                   />
                 </label>
               ) : (
                 <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                  <FileText className="w-5 h-5 text-primary shrink-0" />
+                  <FileText className="size-5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{fileName}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3 h-3" /> {studentList.length} students parsed
+                      <Users className="size-3" /> {studentList.length} students parsed
                     </p>
                   </div>
                   <Button type="button" variant="ghost" size="sm" onClick={clearFile}>
-                    <X className="w-4 h-4" />
+                    <X className="size-4" />
                   </Button>
                 </div>
               )}
@@ -193,7 +194,7 @@ export default function NewClassPage() {
                     </thead>
                     <tbody className="divide-y">
                       {studentList.map((s, i) => (
-                        <tr key={i} className="hover:bg-muted/50">
+                        <tr key={s.orgDefinedId} className="hover:bg-muted/50">
                           <td className="p-2 text-muted-foreground">{i + 1}</td>
                           <td className="p-2 font-mono text-xs">{s.orgDefinedId}</td>
                           <td className="p-2">{s.lastName}</td>

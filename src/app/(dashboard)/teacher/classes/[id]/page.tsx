@@ -44,7 +44,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/teacher/classes"><ArrowLeft className="w-4 h-4" /> Classes</Link>
+          <Link href="/teacher/classes"><ArrowLeft className="size-4" /> Classes</Link>
         </Button>
       </div>
 
@@ -55,7 +55,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" asChild>
-            <Link href={`/teacher/classes/${cls.id}/invite`}><Link2 className="w-4 h-4" /> Invite Link</Link>
+            <Link href={`/teacher/classes/${cls.id}/invite`}><Link2 className="size-4" /> Invite Link</Link>
           </Button>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         <div className="md:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2"><BookOpen className="w-4 h-4" /> Topics</CardTitle>
+              <CardTitle className="flex items-center gap-2"><BookOpen className="size-4" /> Topics</CardTitle>
               <Button size="sm" asChild>
                 <Link href={`/teacher/classes/${cls.id}/topics`}>Manage Topics</Link>
               </Button>
@@ -105,7 +105,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         <div className="md:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2"><FileText className="w-4 h-4" /> Learning Materials</CardTitle>
+              <CardTitle className="flex items-center gap-2"><FileText className="size-4" /> Learning Materials</CardTitle>
               <Button size="sm" asChild>
                 <Link href={`/teacher/classes/${cls.id}/materials`}>Manage Materials</Link>
               </Button>
@@ -115,7 +115,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="mb-3">No materials uploaded yet.</p>
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/teacher/classes/${cls.id}/materials`}><FileUp className="w-4 h-4 mr-2" /> Upload Materials</Link>
+                    <Link href={`/teacher/classes/${cls.id}/materials`}><FileUp className="size-4 mr-2" /> Upload Materials</Link>
                   </Button>
                 </div>
               ) : (
@@ -124,7 +124,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                     <div key={mat.id} className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-50 rounded-md">
-                          <FileText className="w-5 h-5 text-blue-600" />
+                          <FileText className="size-5 text-blue-600" />
                         </div>
                         <div>
                           <p className="font-medium text-sm">{mat.title || mat.originalName}</p>
@@ -154,7 +154,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="w-4 h-4" /> Student Roster</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="size-4" /> Student Roster</CardTitle>
               <Button size="sm" variant="outline" asChild>
                 <Link href={`/teacher/classes/${cls.id}/students`}>Manage Roster</Link>
               </Button>
@@ -162,10 +162,10 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
             <CardContent>
               <div className="flex gap-3 mb-3 text-xs">
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <Users className="w-3 h-3" /> {cls._count.studentList} in roster
+                  <Users className="size-3" /> {cls._count.studentList} in roster
                 </span>
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <UserCheck className="w-3 h-3" /> {cls._count.enrollments} enrolled
+                  <UserCheck className="size-3" /> {cls._count.enrollments} enrolled
                 </span>
               </div>
               {cls.studentList.length === 0 ? (
@@ -177,7 +177,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                     const isEnrolled = enrolledNames.has(nameKey);
                     return (
                       <div key={s.id} className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                        <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                           {s.firstName[0]}{s.lastName[0]}
                         </div>
                         <span className="text-sm flex-1">{s.firstName} {s.lastName}</span>
@@ -194,7 +194,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                   {cls.studentList.length > 5 && (
                     <Button variant="ghost" size="sm" className="w-full" asChild>
                       <Link href={`/teacher/classes/${cls.id}/students`}>
-                        <UserCheck className="w-3 h-3" /> View all {cls.studentList.length} students
+                        <UserCheck className="size-3" /> View all {cls.studentList.length} students
                       </Link>
                     </Button>
                   )}
@@ -206,7 +206,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
           {cls.invitations.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2"><Link2 className="w-4 h-4" /> Active Invite Links</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2"><Link2 className="size-4" /> Active Invite Links</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {cls.invitations.map((inv) => (

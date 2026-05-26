@@ -47,21 +47,21 @@ function SidebarContent({
   const pathname = usePathname();
 
   const teacherNav: NavItem[] = [
-    { href: "/teacher", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { href: "/teacher/classes", label: "My Classes", icon: <Users className="w-4 h-4" /> },
-    { href: "/teacher/topics", label: "Topics & Modules", icon: <BookOpen className="w-4 h-4" /> },
-    { href: "/teacher/questions", label: "Question Bank", icon: <FileQuestion className="w-4 h-4" /> },
+    { href: "/teacher", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
+    { href: "/teacher/classes", label: "My Classes", icon: <Users className="size-4" /> },
+    { href: "/teacher/topics", label: "Topics & Modules", icon: <BookOpen className="size-4" /> },
+    { href: "/teacher/questions", label: "Question Bank", icon: <FileQuestion className="size-4" /> },
   ];
 
   const studentNav: NavItem[] = [
-    { href: "/student", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { href: "/student/classes", label: "My Classes", icon: <GraduationCap className="w-4 h-4" /> },
+    { href: "/student", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
+    { href: "/student/classes", label: "My Classes", icon: <GraduationCap className="size-4" /> },
   ];
 
   const adminNav: NavItem[] = [
-    { href: "/admin", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { href: "/admin/users", label: "Users", icon: <Users className="w-4 h-4" /> },
-    { href: "/admin/ai-config", label: "AI Config", icon: <Settings className="w-4 h-4" /> },
+    { href: "/admin", label: "Overview", icon: <LayoutDashboard className="size-4" /> },
+    { href: "/admin/users", label: "Users", icon: <Users className="size-4" /> },
+    { href: "/admin/ai-config", label: "AI Config", icon: <Settings className="size-4" /> },
   ];
 
   const navItems = role === "ADMIN" ? adminNav : role === "TEACHER" ? teacherNav : studentNav;
@@ -71,8 +71,8 @@ function SidebarContent({
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-blue-400" />
+          <div className="size-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <BookOpen className="size-4 text-blue-400" />
           </div>
           <span className="font-bold text-sidebar-foreground">AI4Talent</span>
         </div>
@@ -101,7 +101,7 @@ function SidebarContent({
             >
               {item.icon}
               {item.label}
-              {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
+              {isActive && <ChevronRight className="size-3 ml-auto" />}
             </Link>
           );
         })}
@@ -110,7 +110,7 @@ function SidebarContent({
       {/* User */}
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-3 py-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400 shrink-0">
+          <div className="size-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400 shrink-0">
             {firstName[0]}{lastName[0]}
           </div>
           <div className="flex-1 min-w-0">
@@ -122,11 +122,11 @@ function SidebarContent({
             </p>
           </div>
         </div>
-        <button
+        <button type="button"
           onClick={onSignOut}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="size-4" />
           Sign out
         </button>
         <div className="mt-3 px-3">

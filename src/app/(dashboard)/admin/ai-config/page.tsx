@@ -434,7 +434,7 @@ export default function AiConfigPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -450,9 +450,9 @@ export default function AiConfigPage() {
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <AlertTriangle className="size-4 shrink-0" />
           <span>{error}</span>
-          <button
+          <button type="button"
             onClick={() => setError("")}
             className="ml-auto text-red-500 hover:text-red-700"
           >
@@ -466,13 +466,13 @@ export default function AiConfigPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Server className="w-5 h-5" /> Provider Pool
+              <Server className="size-5" /> Provider Pool
             </h2>
             <p className="text-sm text-muted-foreground">
               Configure API endpoints, keys, and their available models.
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setProviderForm(EMPTY_PROVIDER_FORM);
               setEditingProviderId(null);
@@ -480,7 +480,7 @@ export default function AiConfigPage() {
             }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Add Provider
+            <Plus className="size-4" /> Add Provider
           </button>
         </div>
 
@@ -490,8 +490,9 @@ export default function AiConfigPage() {
             <CardContent className="pt-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <label htmlFor="provider-name" className="block text-sm font-medium mb-1">Name</label>
                   <input
+                    id="provider-name"
                     type="text"
                     value={providerForm.name}
                     onChange={(e) =>
@@ -502,8 +503,9 @@ export default function AiConfigPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <label id="provider-type-label" className="block text-sm font-medium mb-1">Type</label>
                   <Select
+                    aria-labelledby="provider-type-label"
                     value={providerForm.providerType}
                     onValueChange={(v) =>
                       setProviderForm((f) => ({
@@ -518,19 +520,19 @@ export default function AiConfigPage() {
                     <SelectContent>
                       <SelectItem value="openai">
                         <span className="flex items-center gap-2">
-                          <Globe className="w-3.5 h-3.5" /> OpenAI
+                          <Globe className="size-3.5" /> OpenAI
                         </span>
                       </SelectItem>
                       <SelectItem value="local">
                         <span className="flex items-center gap-2">
-                          <Monitor className="w-3.5 h-3.5" /> Local
+                          <Monitor className="size-3.5" /> Local
                         </span>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="provider-url" className="block text-sm font-medium mb-1">
                     Base URL{" "}
                     <span className="text-muted-foreground font-normal">
                       {providerForm.providerType === "openai"
@@ -539,6 +541,7 @@ export default function AiConfigPage() {
                     </span>
                   </label>
                   <input
+                    id="provider-url"
                     type="url"
                     value={providerForm.baseUrl}
                     onChange={(e) =>
@@ -553,11 +556,12 @@ export default function AiConfigPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="provider-key" className="block text-sm font-medium mb-1">
                     API Key{" "}
                     <span className="text-muted-foreground font-normal">(encrypted at rest)</span>
                   </label>
                   <input
+                    id="provider-key"
                     type="password"
                     value={providerForm.apiKey}
                     onChange={(e) =>
@@ -569,19 +573,19 @@ export default function AiConfigPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-4">
-                <button
+                <button type="button"
                   onClick={handleProviderSubmit}
                   disabled={providerSaving || !providerForm.name.trim()}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {providerSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    <Save className="w-4 h-4" />
+                    <Save className="size-4" />
                   )}
                   {editingProviderId ? "Update" : "Create"} Provider
                 </button>
-                <button
+                <button type="button"
                   onClick={() => {
                     setShowProviderForm(false);
                     setEditingProviderId(null);
@@ -599,7 +603,7 @@ export default function AiConfigPage() {
         {providers.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              <Server className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <Server className="size-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">No providers configured</p>
               <p className="text-sm mt-1">
                 Add an OpenAI or local provider to get started.
@@ -621,7 +625,7 @@ export default function AiConfigPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-2 h-2 rounded-full ${
+                        className={`size-2 rounded-full ${
                           p.isActive ? "bg-green-500" : "bg-gray-400"
                         }`}
                       />
@@ -634,20 +638,20 @@ export default function AiConfigPage() {
                         }`}
                       >
                         {p.providerType === "openai" ? (
-                          <Globe className="w-3 h-3" />
+                          <Globe className="size-3" />
                         ) : (
-                          <Monitor className="w-3 h-3" />
+                          <Monitor className="size-3" />
                         )}
                         {p.providerType}
                       </span>
                       {p.hasApiKey && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Key className="w-3 h-3" /> {p.maskedApiKey}
+                          <Key className="size-3" /> {p.maskedApiKey}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <button
+                      <button type="button"
                         onClick={() =>
                           setExpandedProvider(
                             expandedProvider === p.id ? null : p.id
@@ -657,12 +661,12 @@ export default function AiConfigPage() {
                         title="Manage models"
                       >
                         {expandedProvider === p.id ? (
-                          <ChevronUp className="w-4 h-4" />
+                          <ChevronUp className="size-4" />
                         ) : (
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="size-4" />
                         )}
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleToggleActive(p)}
                         className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                           p.isActive
@@ -672,19 +676,19 @@ export default function AiConfigPage() {
                       >
                         {p.isActive ? "Disable" : "Enable"}
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleEditProvider(p)}
                         className="rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         title="Edit provider"
                       >
-                        <Settings2 className="w-4 h-4" />
+                        <Settings2 className="size-4" />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleDeleteProvider(p.id)}
                         className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         title="Delete provider"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="size-4" />
                       </button>
                     </div>
                   </div>
@@ -704,27 +708,27 @@ export default function AiConfigPage() {
                       </h4>
                       <div className="flex items-center gap-2">
                         {p.providerType === "local" && (
-                          <button
+                          <button type="button"
                             onClick={() => handleDiscover(p.id)}
                             disabled={discovering === p.id}
                             className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
                           >
                             <RefreshCw
-                              className={`w-3.5 h-3.5 ${
+                              className={`size-3.5 ${
                                 discovering === p.id ? "animate-spin" : ""
                               }`}
                             />
                             Discover Models
                           </button>
                         )}
-                        <button
+                        <button type="button"
                           onClick={() => {
                             setModelForm(EMPTY_MODEL_FORM);
                             setShowModelForm(p.id);
                           }}
                           className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
                         >
-                          <Plus className="w-3.5 h-3.5" /> Add Model
+                          <Plus className="size-3.5" /> Add Model
                         </button>
                       </div>
                     </div>
@@ -736,6 +740,7 @@ export default function AiConfigPage() {
                           <input
                             type="text"
                             placeholder="Model ID (e.g. gpt-5.1)"
+                            aria-label="Model ID"
                             value={modelForm.modelId}
                             onChange={(e) =>
                               setModelForm((f) => ({
@@ -748,6 +753,7 @@ export default function AiConfigPage() {
                           <input
                             type="text"
                             placeholder="Display name (optional)"
+                            aria-label="Display name"
                             value={modelForm.displayName}
                             onChange={(e) =>
                               setModelForm((f) => ({
@@ -781,6 +787,7 @@ export default function AiConfigPage() {
                           <label className="flex items-center gap-1.5 text-sm">
                             <input
                               type="checkbox"
+                              aria-label="Default model"
                               checked={modelForm.isDefault}
                               onChange={(e) =>
                                 setModelForm((f) => ({
@@ -793,19 +800,19 @@ export default function AiConfigPage() {
                             Default model
                           </label>
                           <div className="flex-1" />
-                          <button
+                          <button type="button"
                             onClick={() => handleModelSubmit(p.id)}
                             disabled={modelSaving || !modelForm.modelId.trim()}
                             className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
                           >
                             {modelSaving ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="size-3 animate-spin" />
                             ) : (
-                              <Plus className="w-3 h-3" />
+                              <Plus className="size-3" />
                             )}
                             Add
                           </button>
-                          <button
+                          <button type="button"
                             onClick={() => setShowModelForm(null)}
                             className="rounded-md border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
                           >
@@ -838,7 +845,7 @@ export default function AiConfigPage() {
                               )}
                               {m.serviceTier && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                  <Zap className="w-3 h-3" /> {m.serviceTier}
+                                  <Zap className="size-3" /> {m.serviceTier}
                                 </span>
                               )}
                               {m.isDefault && (
@@ -847,11 +854,11 @@ export default function AiConfigPage() {
                                 </span>
                               )}
                             </div>
-                            <button
+                            <button type="button"
                               onClick={() => handleDeleteModel(p.id, m.id)}
                               className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="size-3.5" />
                             </button>
                           </div>
                         ))}
@@ -870,13 +877,13 @@ export default function AiConfigPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Settings2 className="w-5 h-5" /> Use Case Assignments
+              <Settings2 className="size-5" /> Use Case Assignments
             </h2>
             <p className="text-sm text-muted-foreground">
               Assign a provider and model to each use case.
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={handleSaveAssignments}
             disabled={
               assignmentSaving || Object.keys(assignmentEdits).length === 0
@@ -884,9 +891,9 @@ export default function AiConfigPage() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {assignmentSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Save className="w-4 h-4" />
+              <Save className="size-4" />
             )}
             Save Assignments
           </button>
@@ -905,15 +912,15 @@ export default function AiConfigPage() {
                     <h3 className="font-medium text-sm">{label}</h3>
                     <div className="flex items-center gap-2">
                       {assignments[useCase] && (
-                        <button
+                        <button type="button"
                           onClick={() => handleTestConnection(useCase)}
                           disabled={test?.loading}
                           className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
                         >
                           {test?.loading ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="size-3.5 animate-spin" />
                           ) : (
-                            <Zap className="w-3.5 h-3.5" />
+                            <Zap className="size-3.5" />
                           )}
                           Test Connection
                         </button>
@@ -928,10 +935,11 @@ export default function AiConfigPage() {
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      <label id={`provider-label-${useCase}`} className="block text-xs font-medium text-muted-foreground mb-1">
                         Provider
                       </label>
                       <Select
+                        aria-labelledby={`provider-label-${useCase}`}
                         value={effective.providerId || "none"}
                         onValueChange={(v) =>
                           handleAssignmentChange(
@@ -945,16 +953,16 @@ export default function AiConfigPage() {
                           <SelectValue placeholder="Select a provider" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">— Not assigned —</SelectItem>
+                          <SelectItem value="none"> -  Not assigned - </SelectItem>
                           {providers
                             .filter((p) => p.isActive)
                             .map((p) => (
                               <SelectItem key={p.id} value={p.id}>
                                 <span className="flex items-center gap-2">
                                   {p.providerType === "openai" ? (
-                                    <Globe className="w-3 h-3" />
+                                    <Globe className="size-3" />
                                   ) : (
-                                    <Monitor className="w-3 h-3" />
+                                    <Monitor className="size-3" />
                                   )}
                                   {p.name}
                                 </span>
@@ -964,10 +972,11 @@ export default function AiConfigPage() {
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      <label id={`model-label-${useCase}`} className="block text-xs font-medium text-muted-foreground mb-1">
                         Model
                       </label>
                       <Select
+                        aria-labelledby={`model-label-${useCase}`}
                         value={effective.modelId || "none"}
                         onValueChange={(v) =>
                           handleAssignmentChange(
@@ -988,7 +997,7 @@ export default function AiConfigPage() {
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">— Not assigned —</SelectItem>
+                          <SelectItem value="none"> -  Not assigned - </SelectItem>
                           {selectedModels.map((m) => (
                             <SelectItem key={m.id} value={m.id}>
                               {m.modelId}
@@ -1015,9 +1024,9 @@ export default function AiConfigPage() {
                       }`}
                     >
                       {test.success ? (
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="size-3.5" />
                       ) : (
-                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <AlertTriangle className="size-3.5" />
                       )}
                       {test.message}
                     </div>

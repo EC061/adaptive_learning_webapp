@@ -35,12 +35,12 @@ interface Subtopic { id: string; name: string }
 interface Topic { id: string; name: string; subtopics: Subtopic[] }
 interface ImportSummary { importedCount: number; skippedCount: number; errorCount: number; bankTitle?: string; errors?: { index: number; sourceQuestionId?: string; message: string }[] }
 
-const emptyOptions = () => [{ text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }, { text: "", isCorrect: false }];
+const emptyOptions = () => [{ id: crypto.randomUUID(), text: "", isCorrect: false }, { id: crypto.randomUUID(), text: "", isCorrect: false }, { id: crypto.randomUUID(), text: "", isCorrect: false }, { id: crypto.randomUUID(), text: "", isCorrect: false }];
 
 function QuestionsContent() {
-  const searchParams = useSearchParams();
-  const filterSubtopicId = searchParams.get("subtopicId") || "";
-  const filterTopicId = searchParams.get("topicId") || "";
+  const { get } = useSearchParams();
+  const filterSubtopicId = get("subtopicId") || "";
+  const filterTopicId = get("topicId") || "";
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -80,7 +80,7 @@ function QuestionsContent() {
 
   function startEdit(q: Question) {
     setEditingQuestion(q);
-    setForm({ text: q.text, topicId: q.topicId, subtopicId: q.subtopicId, difficultyLevel: q.difficultyLevel, answerMode: q.answerMode ?? "SINGLE_SELECT", options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })) });
+    setForm({ text: q.text, topicId: q.topicId, subtopicId: q.subtopicId, difficultyLevel: q.difficultyLevel, answerMode: q.answerMode ?? "SINGLE_SELECT", options: q.options.map((o) => ({ id: o.id ?? crypto.randomUUID(), text: o.text, isCorrect: o.isCorrect })) });
     setShowForm(true);
   }
 
@@ -198,7 +198,7 @@ function QuestionsContent() {
     }
   }
 
-  if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-6 text-muted-foreground">Loading…</div>;
 
   const subtopicName = filterSubtopicId ? questions[0]?.subtopic?.name : null;
   const topicName = filterTopicId ? questions[0]?.topic?.name : null;
@@ -207,7 +207,7 @@ function QuestionsContent() {
     <div className="p-4 md:p-6 space-y-6">
       {filterTopicId && (
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/teacher/topics/${filterTopicId}`}><ArrowLeft className="w-4 h-4" /> Back to modules</Link>
+          <Link href={`/teacher/topics/${filterTopicId}`}><ArrowLeft className="size-4" /> Back to modules</Link>
         </Button>
       )}
 
@@ -217,7 +217,7 @@ function QuestionsContent() {
           {subtopicName && topicName && <p className="text-muted-foreground text-sm mt-1">Filtered: {topicName} › {subtopicName}</p>}
         </div>
         <Button className="shrink-0" onClick={() => { resetForm(); setShowForm(true); }}>
-          <Plus className="w-4 h-4" /> Add Question
+          <Plus className="size-4" /> Add Question
         </Button>
       </div>
 
@@ -225,7 +225,7 @@ function QuestionsContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Upload className="w-5 h-5" /> Import Questions</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Upload className="size-5" /> Import Questions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
@@ -323,18 +323,18 @@ function QuestionsContent() {
             <div className="space-y-2">
               <Label>Options <span className="text-muted-foreground text-xs">({form.answerMode === "MULTI_SELECT" ? "click boxes to mark all correct answers" : "click radio to mark correct"})</span></Label>
               {form.options.map((opt, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <button type="button" onClick={() => markCorrect(i)} className={`w-4 h-4 border-2 flex-shrink-0 ${form.answerMode === "MULTI_SELECT" ? "rounded" : "rounded-full"} ${opt.isCorrect ? "bg-green-500 border-green-500" : "border-muted-foreground"}`} />
+                <div key={opt.id ?? i} className="flex items-center gap-2">
+                  <button type="button" aria-label={opt.isCorrect ? "Mark as incorrect" : "Mark as correct"} onClick={() => markCorrect(i)} className={`size-4 border-2 flex-shrink-0 ${form.answerMode === "MULTI_SELECT" ? "rounded" : "rounded-full"} ${opt.isCorrect ? "bg-green-500 border-green-500" : "border-muted-foreground"}`} />
                   <Input placeholder={`Option ${i + 1}`} value={opt.text} onChange={(e) => setOption(i, "text", e.target.value)} />
                 </div>
               ))}
-              <Button variant="ghost" size="sm" onClick={() => setForm((p) => ({ ...p, options: [...p.options, { text: "", isCorrect: false }] }))}>
-                <Plus className="w-3 h-3" /> Add option
+              <Button variant="ghost" size="sm" onClick={() => setForm((p) => ({ ...p, options: [...p.options, { id: crypto.randomUUID(), text: "", isCorrect: false }] }))}>
+                <Plus className="size-3" /> Add option
               </Button>
             </div>
             <div className="flex gap-3">
-              <Button onClick={saveQuestion}><Check className="w-4 h-4" /> {editingQuestion ? "Update" : "Save"}</Button>
-              <Button variant="outline" onClick={resetForm}><X className="w-4 h-4" /> Cancel</Button>
+              <Button onClick={saveQuestion}><Check className="size-4" /> {editingQuestion ? "Update" : "Save"}</Button>
+              <Button variant="outline" onClick={resetForm}><X className="size-4" /> Cancel</Button>
             </div>
           </CardContent>
         </Card>
@@ -344,7 +344,7 @@ function QuestionsContent() {
       {questions.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12 text-muted-foreground">
-            <FileQuestion className="w-10 h-10 mx-auto mb-3" />
+            <FileQuestion className="size-10 mx-auto mb-3" />
             <p>No questions yet. Add one above.</p>
           </CardContent>
         </Card>
@@ -367,7 +367,7 @@ function QuestionsContent() {
                     <div className="space-y-1">
                       {q.options.map((opt) => (
                         <div key={opt.id} className={`text-sm flex items-center gap-2 ${opt.isCorrect ? "text-green-700 font-medium" : "text-muted-foreground"}`}>
-                          <span className={`w-3 h-3 rounded-full flex-shrink-0 ${opt.isCorrect ? "bg-green-500" : "bg-muted-foreground/30"}`} />
+                          <span className={`size-3 rounded-full flex-shrink-0 ${opt.isCorrect ? "bg-green-500" : "bg-muted-foreground/30"}`} />
                           {opt.text}
                         </div>
                       ))}
@@ -380,8 +380,8 @@ function QuestionsContent() {
                     )}
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
-                    <Button size="sm" variant="ghost" onClick={() => startEdit(q)}><Pencil className="w-3 h-3" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteQuestion(q.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => startEdit(q)}><Pencil className="size-3" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => deleteQuestion(q.id)}><Trash2 className="size-3 text-destructive" /></Button>
                   </div>
                 </div>
               </CardContent>
@@ -395,7 +395,7 @@ function QuestionsContent() {
 
 export default function QuestionsPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-muted-foreground">Loading...</div>}>
+    <Suspense fallback={<div className="p-6 text-muted-foreground">Loading…</div>}>
       <QuestionsContent />
     </Suspense>
   );

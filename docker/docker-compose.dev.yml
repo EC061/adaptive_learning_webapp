@@ -14,7 +14,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: ${DEV_DATABASE_URL}
     volumes:
-      - ./data/db:/app/prisma/data
+      - ./data/db/dev:/app/prisma/data
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -32,7 +32,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: ${DEV_DATABASE_URL}
     volumes:
-      - ./data/db:/app/prisma/data
+      - ./data/db/dev:/app/prisma/data
     restart: unless-stopped
     depends_on:
       - web-dev

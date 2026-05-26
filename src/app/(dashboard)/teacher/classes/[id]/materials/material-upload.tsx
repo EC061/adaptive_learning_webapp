@@ -177,7 +177,7 @@ export default function MaterialUploadForm({ classId }: MaterialUploadProps) {
         setIsUploading(false);
       }
     },
-    [classId, router]
+    [classId, refresh]
   );
 
   return (

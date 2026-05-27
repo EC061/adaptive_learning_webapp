@@ -38,9 +38,9 @@ interface ImportSummary { importedCount: number; skippedCount: number; errorCoun
 const emptyOptions = () => [{ id: crypto.randomUUID(), text: "", isCorrect: false }, { id: crypto.randomUUID(), text: "", isCorrect: false }, { id: crypto.randomUUID(), text: "", isCorrect: false }, { id: crypto.randomUUID(), text: "", isCorrect: false }];
 
 function QuestionsContent() {
-  const { get } = useSearchParams();
-  const filterSubtopicId = get("subtopicId") || "";
-  const filterTopicId = get("topicId") || "";
+  const searchParams = useSearchParams();
+  const filterSubtopicId = searchParams.get("subtopicId") || "";
+  const filterTopicId = searchParams.get("topicId") || "";
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);

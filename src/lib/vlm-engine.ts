@@ -195,6 +195,62 @@ export async function processMaterial(materialId: string) {
     );
   }
 
+  // Retry failed pages up to 3 times
+  const MAX_PAGE_RETRIES = 3;
+  for (let retryAttempt = 1; retryAttempt <= MAX_PAGE_RETRIES; retryAttempt++) {
+    if (isCancelled(materialId)) {
+      console.log(`[VLM Engine] Processing cancelled for material ${materialId} during retry`);
+      cancelledMaterials.delete(materialId);
+      return;
+    }
+
+    const materialCheck = await prisma.learningMaterial.findUnique({
+      where: { id: materialId },
+    });
+    if (!materialCheck || materialCheck.processedPages >= materialCheck.totalPages) {
+      break; // All pages processed successfully
+    }
+
+    const failedPages = await prisma.materialPage.findMany({
+      where: { materialId, description: null },
+      orderBy: { pageNumber: "asc" },
+    });
+
+    if (failedPages.length === 0) break;
+
+    console.log(`[VLM Engine] Retry attempt ${retryAttempt}/${MAX_PAGE_RETRIES}: ${failedPages.length} failed pages for material ${materialId}`);
+
+    for (let i = 0; i < failedPages.length; i += CONCURRENCY) {
+      if (isCancelled(materialId)) {
+        cancelledMaterials.delete(materialId);
+        return;
+      }
+      const batch = failedPages.slice(i, i + CONCURRENCY);
+      await Promise.all(
+        batch.map((page) =>
+          processPage(materialId, page.pageNumber, page.storageKey, bucket, openai, model, serviceTier).catch((err) => {
+            console.error(`[VLM Engine] Retry ${retryAttempt} failed for page ${page.pageNumber}:`, err);
+          })
+        )
+      );
+    }
+  }
+
+  // Final check: if still incomplete after all retries, mark FAILED
+  const materialAfterRetries = await prisma.learningMaterial.findUnique({
+    where: { id: materialId },
+  });
+  if (materialAfterRetries && materialAfterRetries.processedPages < materialAfterRetries.totalPages) {
+    await prisma.learningMaterial.update({
+      where: { id: materialId },
+      data: {
+        processingStatus: "FAILED",
+        errorMessage: `Only ${materialAfterRetries.processedPages}/${materialAfterRetries.totalPages} pages processed successfully after ${MAX_PAGE_RETRIES} retry attempts.`,
+      },
+    });
+    return;
+  }
+
   // Check cancellation before Tier 2
   if (isCancelled(materialId)) {
     console.log(`[VLM Engine] Processing cancelled for material ${materialId} before Tier 2`);

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, LayoutDashboard, Shield, AlertTriangle, CheckCircle, Trash2, RefreshCw } from "lucide-react";
+import { Users, GraduationCap, LayoutDashboard, Shield, AlertTriangle, CheckCircle, Trash2, RefreshCw, RotateCcw } from "lucide-react";
 
 interface Stats {
   students: number;
@@ -64,6 +64,16 @@ export default function AdminDashboardPage() {
     if (!confirm("Are you sure you want to delete this material and all its files?")) return;
     try {
       await fetch(`/api/admin/materials/${materialId}`, { method: "DELETE" });
+      fetchMaterials();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRegenerate = async (materialId: string) => {
+    if (!confirm("This will fully re-process all pages from scratch. Continue?")) return;
+    try {
+      await fetch(`/api/admin/materials/${materialId}/regenerate`, { method: "POST" });
       fetchMaterials();
     } catch (err) {
       console.error(err);
@@ -171,7 +181,7 @@ export default function AdminDashboardPage() {
                       {mat.title || mat.originalName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {mat.teacher?.user?.name || "Unknown"} <br />
+                      {mat.teacher?.user?.username || "Unknown"} <br />
                       <span className="text-xs text-gray-400">{mat.class?.name}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -184,14 +194,21 @@ export default function AdminDashboardPage() {
                       {mat.processedPages} / {mat.totalPages || "?"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {mat.processingStatus === "FAILED" && (
-                        <button type="button" onClick={() => handleRetry(mat.id)} className="text-blue-600 hover:text-blue-900 mr-4">
-                          Retry
+                      <div className="flex items-center justify-end gap-2">
+                        {mat.processingStatus === "FAILED" && (
+                          <button type="button" onClick={() => handleRetry(mat.id)} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" title="Retry failed pages">
+                            <RotateCcw className="size-3" /> Retry
+                          </button>
+                        )}
+                        {mat.processingStatus !== "PROCESSING" && (
+                          <button type="button" onClick={() => handleRegenerate(mat.id)} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-md transition-colors" title="Re-process all pages from scratch">
+                            <RefreshCw className="size-3" /> Regenerate
+                          </button>
+                        )}
+                        <button type="button" onClick={() => handleDelete(mat.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete material">
+                          <Trash2 className="size-4" />
                         </button>
-                      )}
-                      <button type="button" onClick={() => handleDelete(mat.id)} className="text-red-600 hover:text-red-900 flex items-center justify-end w-full">
-                        <Trash2 className="size-4" />
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -61,7 +61,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Topics Section */}
+        {/* Left Column: Topics + Learning Materials */}
         <div className="md:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -99,10 +99,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Learning Materials Section */}
-        <div className="md:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2"><FileText className="size-4" /> Learning Materials</CardTitle>

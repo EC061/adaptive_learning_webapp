@@ -5,6 +5,7 @@ import MaterialUploadForm from "./material-upload";
 import Link from "next/link";
 import { FileText, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import MaterialDeleteButton from "./material-delete-button";
+import MaterialRetryButton from "./material-retry-button";
 
 export default async function ClassMaterialsPage(props: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -120,7 +121,10 @@ export default async function ClassMaterialsPage(props: { params: Promise<{ id: 
                       View Analysis
                     </Link>
                   )}
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center">
+                    {mat.processingStatus === "FAILED" && (
+                      <MaterialRetryButton classId={classId} materialId={mat.id} />
+                    )}
                     <MaterialDeleteButton classId={classId} materialId={mat.id} />
                   </div>
                 </div>

@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
 
   const fetchMaterials = async () => {
     try {
-      const res = await fetch("/api/admin/materials");
+      const res = await fetch("/api/admin/materials", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setMaterials(data.materials);
@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch("/api/admin/stats");
+        const res = await fetch("/api/admin/stats", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setStats(data);
@@ -43,13 +43,17 @@ export default function AdminDashboardPage() {
       setLoading(false);
     }
     fetchData();
-
-    // Auto-refresh materials processing periodically
-    const interval = setInterval(() => {
-      fetchMaterials();
-    }, 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Poll every 2s while any material is still being processed; stop otherwise.
+  useEffect(() => {
+    const hasActive = materials.some(
+      (m) => m.processingStatus === "PROCESSING" || m.processingStatus === "IDLE"
+    );
+    if (!hasActive) return;
+    const interval = setInterval(fetchMaterials, 2000);
+    return () => clearInterval(interval);
+  }, [materials]);
 
   const handleRetry = async (materialId: string) => {
     try {

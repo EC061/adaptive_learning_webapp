@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, LayoutDashboard, Shield, AlertTriangle, CheckCircle, Trash2, RefreshCw, RotateCcw } from "lucide-react";
+import { Users, GraduationCap, LayoutDashboard, Shield } from "lucide-react";
 
 interface Stats {
   students: number;
@@ -12,20 +12,7 @@ interface Stats {
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchMaterials = async () => {
-    try {
-      const res = await fetch("/api/admin/materials", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        setMaterials(data.materials);
-      }
-    } catch (err) {
-      console.error("Failed to fetch materials", err);
-    }
-  };
 
   useEffect(() => {
     async function fetchData() {
@@ -38,51 +25,10 @@ export default function AdminDashboardPage() {
       } catch (err) {
         console.error("Failed to fetch stats", err);
       }
-
-      await fetchMaterials();
       setLoading(false);
     }
     fetchData();
   }, []);
-
-  // Poll every 2s while any material is still being processed; stop otherwise.
-  useEffect(() => {
-    const hasActive = materials.some(
-      (m) => m.processingStatus === "PROCESSING" || m.processingStatus === "IDLE"
-    );
-    if (!hasActive) return;
-    const interval = setInterval(fetchMaterials, 2000);
-    return () => clearInterval(interval);
-  }, [materials]);
-
-  const handleRetry = async (materialId: string) => {
-    try {
-      await fetch(`/api/admin/materials/${materialId}/retry`, { method: "POST" });
-      fetchMaterials();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDelete = async (materialId: string) => {
-    if (!confirm("Are you sure you want to delete this material and all its files?")) return;
-    try {
-      await fetch(`/api/admin/materials/${materialId}`, { method: "DELETE" });
-      fetchMaterials();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRegenerate = async (materialId: string) => {
-    if (!confirm("This will fully re-process all pages from scratch. Continue?")) return;
-    try {
-      await fetch(`/api/admin/materials/${materialId}/regenerate`, { method: "POST" });
-      fetchMaterials();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -160,67 +106,6 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="mt-12 mb-8">
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Materials Processing</h2>
-        <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teacher / Class</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {materials.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No materials found.</td>
-                </tr>
-              ) : (
-                materials.map((mat) => (
-                  <tr key={mat.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {mat.title || mat.originalName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {mat.teacher?.user?.username || "Unknown"} <br />
-                      <span className="text-xs text-gray-400">{mat.class?.name}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {mat.processingStatus === "SUCCESS" && <span className="inline-flex items-center text-green-600"><CheckCircle className="size-4 mr-1" /> Success</span>}
-                      {mat.processingStatus === "FAILED" && <span className="inline-flex items-center text-red-600" title={mat.errorMessage}><AlertTriangle className="size-4 mr-1" /> Failed</span>}
-                      {mat.processingStatus === "PROCESSING" && <span className="inline-flex items-center text-blue-600"><RefreshCw className="size-4 mr-1 animate-spin" /> Processing</span>}
-                      {mat.processingStatus === "IDLE" && <span className="inline-flex items-center text-gray-500">Idle</span>}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {mat.processedPages} / {mat.totalPages || "?"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        {mat.processingStatus === "FAILED" && (
-                          <button type="button" onClick={() => handleRetry(mat.id)} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" title="Retry failed pages">
-                            <RotateCcw className="size-3" /> Retry
-                          </button>
-                        )}
-                        {mat.processingStatus !== "PROCESSING" && (
-                          <button type="button" onClick={() => handleRegenerate(mat.id)} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-md transition-colors" title="Re-process all pages from scratch">
-                            <RefreshCw className="size-3" /> Regenerate
-                          </button>
-                        )}
-                        <button type="button" onClick={() => handleDelete(mat.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete material">
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }

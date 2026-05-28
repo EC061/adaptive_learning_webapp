@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronRight,
   Settings,
+  FolderOpen,
 } from "lucide-react";
 
 interface NavItem {
@@ -60,6 +61,7 @@ function SidebarContent({
 
   const adminNav: NavItem[] = [
     { href: "/admin", label: "Overview", icon: <LayoutDashboard className="size-4" /> },
+    { href: "/admin/materials", label: "Materials Processing", icon: <FolderOpen className="size-4" /> },
     { href: "/admin/users", label: "Users", icon: <Users className="size-4" /> },
     { href: "/admin/ai-config", label: "AI Config", icon: <Settings className="size-4" /> },
   ];

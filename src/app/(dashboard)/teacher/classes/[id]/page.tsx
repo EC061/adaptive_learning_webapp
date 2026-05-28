@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, BookOpen, Link2, ArrowLeft, UserCheck, ClipboardList, FileText, FileUp } from "lucide-react";
+import MaterialTitleEdit from "./materials/material-title-edit";
 
 export default async function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -124,7 +125,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                           <FileText className="size-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{mat.title || mat.originalName}</p>
+                          <MaterialTitleEdit classId={cls.id} materialId={mat.id} title={mat.title} originalName={mat.originalName} className="font-medium text-sm" />
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             <span>{(mat.sizeBytes / 1024 / 1024).toFixed(2)} MB</span>
                             <span>•</span>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileText, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import MaterialDeleteButton from "./material-delete-button";
 import MaterialRetryButton from "./material-retry-button";
+import MaterialTitleEdit from "./material-title-edit";
 
 export default async function ClassMaterialsPage(props: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -71,7 +72,7 @@ export default async function ClassMaterialsPage(props: { params: Promise<{ id: 
                     <FileText className="size-6 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{mat.title || mat.originalName}</h3>
+                    <MaterialTitleEdit classId={classId} materialId={mat.id} title={mat.title} originalName={mat.originalName} className="text-lg font-medium text-gray-900" />
                     <div className="flex items-center gap-x-2 text-sm text-gray-500 mt-1">
                       <span>{(mat.sizeBytes / 1024 / 1024).toFixed(2)} MB</span>
                       <span>•</span>

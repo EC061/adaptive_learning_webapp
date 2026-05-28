@@ -30,14 +30,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Material not found" }, { status: 404 });
   }
 
-  let body: { batchDescription?: unknown };
+  let body: { batchDescription?: unknown; title?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const data: { batchDescription?: string | null } = {};
+  const data: { batchDescription?: string | null; title?: string | null } = {};
 
   if ("batchDescription" in body) {
     if (typeof body.batchDescription !== "string") {
@@ -45,6 +45,17 @@ export async function PATCH(
     }
     const trimmed = body.batchDescription.trim();
     data.batchDescription = trimmed.length > 0 ? trimmed : null;
+  }
+
+  if ("title" in body) {
+    if (typeof body.title !== "string") {
+      return NextResponse.json({ error: "title must be a string" }, { status: 400 });
+    }
+    const trimmed = body.title.trim();
+    if (trimmed.length > 255) {
+      return NextResponse.json({ error: "title must be 255 characters or fewer" }, { status: 400 });
+    }
+    data.title = trimmed.length > 0 ? trimmed : null;
   }
 
   if (Object.keys(data).length === 0) {
@@ -57,6 +68,8 @@ export async function PATCH(
     select: {
       batchDescription: true,
       batchKeyConcepts: true,
+      title: true,
+      originalName: true,
     },
   });
 
